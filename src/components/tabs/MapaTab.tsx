@@ -697,6 +697,11 @@ export const MapaTab: React.FC<Props> = ({
         </div>
       </div>
 
+      <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-xs text-zinc-300">
+        <span className="mr-2 rounded-full border border-[#5AC8FA]/40 bg-[#0A84FF]/15 px-2 py-1 font-bold text-[#5AC8FA]">Próximamente</span>
+        Alertas grupales automáticas por cercanía y ubicación compartida mediante servidor en segundo plano.
+      </div>
+
       {/* Puerto Madero Landmarks */}
       <div className="p-4 rounded-[26px] bg-white/[0.04] border border-white/10 backdrop-blur-xl">
         <div className="flex items-center justify-between mb-2">

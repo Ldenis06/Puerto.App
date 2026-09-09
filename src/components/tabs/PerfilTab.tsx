@@ -42,6 +42,9 @@ export const PerfilTab: React.FC<Props> = ({
   const [adminAiDescDraft, setAdminAiDescDraft] = useState('');
   const [adminSaveNotification, setAdminSaveNotification] = useState(false);
   const [adminStatusFeedback, setAdminStatusFeedback] = useState<string | null>(null);
+  const [assignmentMember, setAssignmentMember] = useState<User | null>(null);
+  const [assignmentEmail, setAssignmentEmail] = useState('');
+  const [assignmentError, setAssignmentError] = useState<string | null>(null);
 
   if (!currentUser) {
     return (
@@ -88,6 +91,30 @@ export const PerfilTab: React.FC<Props> = ({
     });
     setAdminSaveNotification(true);
     setTimeout(() => setAdminSaveNotification(false), 2000);
+  };
+
+  const openAssignment = (member: User) => {
+    setAssignmentMember(member);
+    setAssignmentEmail(member.linkedAuth?.accountEmail || '');
+    setAssignmentError(null);
+  };
+
+  const saveAssignment = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!assignmentMember || !onLinkAuth) return;
+    const email = assignmentEmail.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      setAssignmentError('Ingresá un correo válido.');
+      return;
+    }
+    const takenBy = users.find((member) => member.id !== assignmentMember.id && member.linkedAuth?.accountEmail.toLowerCase() === email);
+    if (takenBy) {
+      setAssignmentError(`Ese correo ya está asignado a ${takenBy.name}.`);
+      return;
+    }
+    onLinkAuth(assignmentMember.id, email);
+    setAdminStatusFeedback(`${assignmentMember.name} quedó vinculado a ${email}.`);
+    setAssignmentMember(null);
   };
 
   return (
@@ -340,17 +367,7 @@ export const PerfilTab: React.FC<Props> = ({
                           <button
                             id={`btn-reassign-email-${u.id}`}
                             type="button"
-                            onClick={() => {
-                              const newEmail = window.prompt(
-                                `Reasignar cuenta de Google para ${u.name}:`,
-                                u.linkedAuth?.accountEmail
-                              );
-                              if (newEmail && onLinkAuth) {
-                                const clean = newEmail.trim().toLowerCase();
-                                onLinkAuth(u.id, clean);
-                                setAdminStatusFeedback(`Cuenta de ${u.name} reasignada a: ${clean}`);
-                              }
-                            }}
+                            onClick={() => openAssignment(u)}
                             className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white text-[10px] font-bold border border-white/15 transition active:scale-95"
                           >
                             Reasignar
@@ -374,17 +391,7 @@ export const PerfilTab: React.FC<Props> = ({
                         <button
                           id={`btn-assign-email-${u.id}`}
                           type="button"
-                          onClick={() => {
-                            const newEmail = window.prompt(
-                              `Asignar cuenta de Google a ${u.name}:`,
-                              `${u.id}@gmail.com`
-                            );
-                            if (newEmail && onLinkAuth) {
-                              const clean = newEmail.trim().toLowerCase();
-                              onLinkAuth(u.id, clean);
-                              setAdminStatusFeedback(`${u.name} vinculado manualmente a: ${clean}`);
-                            }
-                          }}
+                            onClick={() => openAssignment(u)}
                           className="px-2.5 py-1.5 rounded-lg bg-[#0A84FF]/20 hover:bg-[#0A84FF]/30 text-[#5AC8FA] text-[10px] font-bold border border-[#0A84FF]/30 transition active:scale-95"
                         >
                           Asignar Google
@@ -479,6 +486,25 @@ export const PerfilTab: React.FC<Props> = ({
               </div>
             )}
           </div>
+        </div>
+      )}
+      {assignmentMember && (
+        <div role="dialog" aria-modal="true" aria-label={`Asignar cuenta a ${assignmentMember.name}`} className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+          <form onSubmit={saveAssignment} className="w-full max-w-sm rounded-[26px] border border-white/15 bg-zinc-950 p-5 shadow-2xl space-y-4 animate-scaleUp">
+            <div>
+              <p className="text-sm font-black text-white">Asignar cuenta de Google</p>
+              <p className="mt-1 text-xs text-zinc-400">Solo <strong className="text-zinc-200">{assignmentEmail || 'el correo que indiques'}</strong> podrá entrar como {assignmentMember.name}.</p>
+            </div>
+            <div>
+              <label htmlFor="assignment-email" className="block mb-1.5 text-[11px] font-bold text-zinc-300">Correo electrónico</label>
+              <input id="assignment-email" type="email" autoFocus value={assignmentEmail} onChange={(event) => { setAssignmentEmail(event.target.value); setAssignmentError(null); }} placeholder="persona@gmail.com" className="w-full rounded-xl border border-white/20 bg-black px-3 py-2.5 text-sm text-white outline-none focus:border-[#0A84FF]" />
+              {assignmentError && <p role="alert" className="mt-2 text-xs text-[#FF8A9B]">{assignmentError}</p>}
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setAssignmentMember(null)} className="flex-1 rounded-xl border border-white/15 py-2.5 text-xs font-bold text-zinc-300">Cancelar</button>
+              <button type="submit" className="flex-1 rounded-xl bg-[#0A84FF] py-2.5 text-xs font-bold text-white">Guardar asignación</button>
+            </div>
+          </form>
         </div>
       )}
     </div>

@@ -23,13 +23,13 @@ import { MapaTab } from './components/tabs/MapaTab';
 import { GastosTab } from './components/tabs/GastosTab';
 import { PerfilTab } from './components/tabs/PerfilTab';
 import { SalidasTab } from './components/tabs/SalidasTab';
-import { AuthModal } from './components/AuthModal';
 import { GoogleLoginGate } from './components/GoogleLoginGate';
 import { MemberProfileModal } from './components/MemberProfileModal';
 import { NotificationsModal } from './components/NotificationsModal';
 import { SplashScreen } from './components/SplashScreen';
 import confetti from 'canvas-confetti';
 import { firebaseAuth, firestore, signInWithGoogle } from './services/firebase';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 export default function App() {
   const [users, setUsers] = useState<User[]>(() => getStoredUsers());
@@ -37,6 +37,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('ruleta');
   const [expenses, setExpenses] = useState<Expense[]>(() => getStoredExpenses());
   const [rouletteHistory, setRouletteHistory] = useState<RouletteResult | null>(() => getStoredRoulette());
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   // Once signed in, Firestore is the shared source for expenses and consented locations.
   useEffect(() => {
@@ -54,9 +55,39 @@ export default function App() {
     return () => { stopExpenses(); stopLocations(); };
   }, [user?.id]);
 
+  // Member identities are shared data. This makes Google assignments made by
+  // Denis visible on every device instead of keeping them only in one browser.
+  useEffect(() => {
+    if (!firebaseAuth.currentUser) return;
+    return onSnapshot(collection(firestore, 'members'), (snapshot) => {
+      if (snapshot.empty) return;
+      const remoteUsers = snapshot.docs.map((item) => item.data() as User);
+      setUsers((currentUsers) => {
+        // The administrator creates member documents progressively as emails
+        // are assigned. Keep the remaining local group members visible until
+        // each of them has a cloud document of their own.
+        const remoteById = new Map(remoteUsers.map((member) => [member.id, member]));
+        const mergedUsers = currentUsers.map((member) => remoteById.get(member.id) || member);
+        const additionalUsers = remoteUsers.filter((member) => !currentUsers.some((current) => current.id === member.id));
+        const nextUsers = [...mergedUsers, ...additionalUsers];
+        saveStoredUsers(nextUsers);
+        return nextUsers;
+      });
+      setUser((current) => current ? remoteUsers.find((member) => member.id === current.id) || current : current);
+    }, () => setSyncError('No se pudieron sincronizar los perfiles. Revisá la conexión e intentá de nuevo.'));
+  }, [firebaseAuth.currentUser?.uid]);
+
+  // Firebase keeps the Google session in this browser. On a later visit, use
+  // its verified email to reopen the assigned profile without asking again.
+  useEffect(() => onAuthStateChanged(firebaseAuth, (account) => {
+    const email = account?.email?.trim().toLowerCase();
+    if (!email || user) return;
+    const assigned = users.find((member) => member.linkedAuth?.accountEmail.toLowerCase() === email);
+    if (assigned) handleLogin(assigned);
+  }), [users, user?.id]);
+
   // Modals & UI states
   const [showSplash, setShowSplash] = useState(true);
-  const [showAuthModal, setShowAuthModal] = useState(false);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [inspectedMember, setInspectedMember] = useState<User | null>(null);
 
@@ -142,11 +173,13 @@ export default function App() {
 
   // Handlers for session
   const handleLogin = (newUser: User) => {
-    setUser(newUser);
-    setCurrentUser(newUser.id);
+    const current = users.find((member) => member.id === newUser.id) || newUser;
+    setUser(current);
+    setCurrentUser(current.id);
   };
 
   const handleLogout = () => {
+    void signOut(firebaseAuth);
     setUser(null);
     setCurrentUser(null);
   };
@@ -156,6 +189,14 @@ export default function App() {
     const nextUsers = users.map((u) => (u.id === updatedUser.id ? updatedUser : u));
     setUsers(nextUsers);
     saveStoredUsers(nextUsers);
+
+    // Changes made by the administrator (including account assignments) must
+    // reach every phone. A failed write is surfaced instead of silently
+    // appearing saved only on this device.
+    if (firebaseAuth.currentUser?.email) {
+      void setDoc(doc(firestore, 'members', updatedUser.id), updatedUser)
+        .catch(() => setSyncError('El cambio no se guardó en la nube. Verificá que ingresaste como Denis y reintentá.'));
+    }
 
     if (user?.id === updatedUser.id && firebaseAuth.currentUser?.email) {
       const location = nextUsers.find((u) => u.id === updatedUser.id)?.location;
@@ -177,6 +218,16 @@ export default function App() {
 
   // Federated account linking
   const handleLinkFederatedAuth = (userId: string, provider: 'google' | 'apple', email: string) => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) {
+      setSyncError('Ingresá un correo electrónico válido.');
+      return;
+    }
+    const linkedToAnotherMember = users.find((member) => member.id !== userId && member.linkedAuth?.accountEmail.toLowerCase() === cleanEmail);
+    if (linkedToAnotherMember) {
+      setSyncError(`Ese correo ya está asignado a ${linkedToAnotherMember.name}.`);
+      return;
+    }
     const target = users.find((u) => u.id === userId);
     if (!target) return;
 
@@ -184,7 +235,7 @@ export default function App() {
       ...target,
       linkedAuth: {
         provider,
-        accountEmail: email,
+        accountEmail: cleanEmail,
         linkedAt: new Date().toISOString(),
       },
     };
@@ -244,7 +295,7 @@ export default function App() {
   };
 
   // Expenses management
-  const handleAddExpense = (
+  const handleAddExpense = async (
     newExpData: Omit<Expense, 'id' | 'createdAt' | 'isPaid' | 'individualQuota'>
   ) => {
     const individualQuota = Math.round(newExpData.totalAmount / newExpData.participantIds.length);
@@ -256,13 +307,17 @@ export default function App() {
       individualQuota,
     };
 
-    const nextExpenses = [newExpense, ...expenses];
-    setExpenses(nextExpenses);
-    saveStoredExpenses(nextExpenses);
-    void setDoc(doc(firestore, 'expenses', newExpense.id), newExpense);
+    try {
+      await setDoc(doc(firestore, 'expenses', newExpense.id), newExpense);
+      const nextExpenses = [newExpense, ...expenses];
+      setExpenses(nextExpenses);
+      saveStoredExpenses(nextExpenses);
+    } catch {
+      setSyncError('El gasto no se guardó en la nube. Revisá la conexión e intentá nuevamente.');
+    }
   };
 
-  const handleMarkAsPaid = (expenseId: string) => {
+  const handleMarkAsPaid = async (expenseId: string) => {
     const nextExpenses = expenses.map((exp) => {
       if (exp.id === expenseId) {
         return {
@@ -274,18 +329,28 @@ export default function App() {
       return exp;
     });
 
-    setExpenses(nextExpenses);
-    saveStoredExpenses(nextExpenses);
-    void updateDoc(doc(firestore, 'expenses', expenseId), { isPaid: true, paidAt: new Date().toISOString() });
+    const paidAt = new Date().toISOString();
+    try {
+      await updateDoc(doc(firestore, 'expenses', expenseId), { isPaid: true, paidAt });
+      const committed = nextExpenses.map((expense) => expense.id === expenseId ? { ...expense, paidAt } : expense);
+      setExpenses(committed);
+      saveStoredExpenses(committed);
+    } catch {
+      setSyncError('No se pudo marcar el gasto como pagado en la nube.');
+    }
   };
 
   // Only the administrator can invoke this handler from the expenses UI.
   // It intentionally persists an empty list, so a reload cannot restore data.
-  const handleClearAllExpenses = () => {
+  const handleClearAllExpenses = async () => {
     if (user?.role !== 'admin') return;
-    setExpenses([]);
-    clearStoredExpenses();
-    void Promise.all(expenses.map((expense) => deleteDoc(doc(firestore, 'expenses', expense.id))));
+    try {
+      await Promise.all(expenses.map((expense) => deleteDoc(doc(firestore, 'expenses', expense.id))));
+      setExpenses([]);
+      clearStoredExpenses();
+    } catch {
+      setSyncError('No se pudieron borrar todos los gastos de la nube. No se eliminaron localmente.');
+    }
   };
 
   const handleSaveRouletteResult = (res: RouletteResult) => {
@@ -297,6 +362,13 @@ export default function App() {
     <div className="min-h-screen bg-black text-white flex flex-col justify-between selection:bg-[#0A84FF] selection:text-white">
       {/* Splash Screen */}
       {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
+
+      {syncError && (
+        <div role="alert" className="fixed z-[80] top-4 left-4 right-4 max-w-xl mx-auto rounded-2xl border border-[#FF375F]/40 bg-zinc-950 p-3 text-xs text-[#FFB3C1] shadow-2xl flex items-center justify-between gap-3">
+          <span>{syncError}</span>
+          <button type="button" onClick={() => setSyncError(null)} className="text-white text-[11px] font-bold">Cerrar</button>
+        </div>
+      )}
 
       {/* Google Login Gate when user is not logged in */}
       {!user && !showSplash && (
@@ -316,7 +388,7 @@ export default function App() {
           users={users}
           alerts={proximityAlerts}
           onSelectMember={(member) => setInspectedMember(member)}
-          onOpenAuthModal={() => setShowAuthModal(true)}
+          onOpenAuthModal={handleLogout}
           onOpenNotifications={() => setShowNotificationsModal(true)}
           todayBirthdayMember={todayBirthdayMember}
         />
@@ -410,16 +482,6 @@ export default function App() {
         />
       </div>
 
-      {/* Auth Modal with direct login & "¿Quién sos?" */}
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        currentUser={user}
-        users={users}
-        onLogin={handleLogin}
-        onLogout={handleLogout}
-        onLinkFederatedAuth={handleLinkFederatedAuth}
-      />
 
       {/* Inspected Member Profile Modal (Carousel tap) */}
       <MemberProfileModal
@@ -427,10 +489,7 @@ export default function App() {
         currentUser={user}
         expenses={expenses}
         onClose={() => setInspectedMember(null)}
-        onSelectAsActiveUser={(target) => {
-          handleLogin(target);
-          setInspectedMember(null);
-        }}
+        onSelectAsActiveUser={() => setInspectedMember(null)}
       />
 
       {/* Notifications and Birthday Simulation Drawer */}

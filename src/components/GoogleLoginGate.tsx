@@ -87,8 +87,10 @@ export const GoogleLoginGate: React.FC<Props> = ({ users, onLogin, onLinkGoogleA
       return;
     }
 
-    // RULE 3: Otherwise, ask "¿Quién es el que ingresa?" with the remaining available members
-    setStep('who-is-entering');
+    // Profiles are assigned by Denis from the administrator panel. Never let
+    // an unknown email choose somebody else's identity on this device.
+    setErrorMsg('Esta cuenta todavía no fue asignada a un integrante. Pedile a Denis que la vincule desde el panel de administrador.');
+    setStep('landing');
   };
 
   // When a user selects their name (e.g. Maxi, Drizza, etc.)
@@ -181,7 +183,7 @@ export const GoogleLoginGate: React.FC<Props> = ({ users, onLogin, onLinkGoogleA
                 <span>Acceso por Cuenta de Google</span>
               </div>
               <p className="text-[11px] text-zinc-400 leading-relaxed">
-                Cada integrante ingresa con su cuenta de Google y elige su nombre en el grupo.
+                Cada integrante ingresa con la cuenta de Google que Denis le asignó.
               </p>
             </div>
 
@@ -215,6 +217,7 @@ export const GoogleLoginGate: React.FC<Props> = ({ users, onLogin, onLinkGoogleA
                 <span>{isSigningIn ? 'Abriendo Google...' : 'Ingresar con cuenta de Google'}</span>
                 <ArrowRight className="w-4 h-4 text-zinc-600 group-hover:text-black group-hover:translate-x-0.5 transition" />
               </button>
+              {errorMsg && <p role="alert" className="text-[11px] text-[#FF8A9B] text-center leading-relaxed">{errorMsg}</p>}
             </div>
           </div>
         )}

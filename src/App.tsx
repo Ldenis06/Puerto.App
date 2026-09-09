@@ -32,9 +32,7 @@ import { firebaseAuth, firestore, signInWithGoogle } from './services/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 function localAvatar(name: string, url: string) {
-  // Profile uploads are stored as data URLs. Every network URL is replaced so
-  // the group list never waits for, or breaks because of, a third-party host.
-  if (typeof url === 'string' && url.startsWith('data:image/')) return url;
+  if (typeof url === 'string' && !url.includes('api.dicebear.com')) return url;
   const safeName = typeof name === 'string' && name.trim() ? name : 'Usuario';
   const initials = safeName.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
   const palette = ['#0A84FF', '#30D158', '#FF9500', '#BF5AF2', '#FFD60A', '#FF375F'];

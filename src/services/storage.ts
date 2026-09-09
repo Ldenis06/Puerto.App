@@ -8,6 +8,13 @@ const ROULETTE_KEY = 'puerto_app_roulette_v1';
 const DISMISSED_ALERTS_KEY = 'puerto_app_dismissed_alerts_v1';
 const LOCATION_SHARING_KEY = 'puerto_app_location_sharing_v1';
 
+function mergeWithInitialUsers(users: User[]): User[] {
+  const savedById = new Map(users.filter((user) => user?.id).map((user) => [user.id, user]));
+  const baseUsers = INITIAL_USERS.map((base) => ({ ...base, ...(savedById.get(base.id) || {}) }));
+  const extras = users.filter((user) => user?.id && !INITIAL_USERS.some((base) => base.id === user.id));
+  return [...baseUsers, ...extras];
+}
+
 export function getStoredUsers(): User[] {
   try {
     const raw = localStorage.getItem(USERS_KEY);
@@ -25,7 +32,7 @@ export function getStoredUsers(): User[] {
           linkedAt: '2025-01-01T00:00:00.000Z',
         };
       }
-      return parsed;
+      return mergeWithInitialUsers(parsed);
     }
     return INITIAL_USERS;
   } catch {

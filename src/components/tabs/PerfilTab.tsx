@@ -36,6 +36,7 @@ export const PerfilTab: React.FC<Props> = ({
   // Profile editing states
   const [personalBio, setPersonalBio] = useState(currentUser?.bio || '');
   const [bioSavedNotification, setBioSavedNotification] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   // Admin states (Denis only)
   const [selectedUserForAdmin, setSelectedUserForAdmin] = useState<User | null>(null);
@@ -58,15 +59,23 @@ export const PerfilTab: React.FC<Props> = ({
 
   // Handle avatar upload via file or camera
   const handleAvatarFile = (file: File) => {
+    setAvatarError(null);
+    if (!file.type.startsWith('image/')) { setAvatarError('Elegí una imagen válida.'); return; }
     const reader = new FileReader();
     reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
-      if (dataUrl) {
-        onUpdateUser({
-          ...currentUser,
-          avatarUrl: dataUrl,
-        });
-      }
+      const image = new Image();
+      image.onload = () => {
+        const size = 256;
+        const scale = Math.min(size / image.width, size / image.height, 1);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        canvas.getContext('2d')?.drawImage(image, 0, 0, canvas.width, canvas.height);
+        const avatarUrl = canvas.toDataURL('image/jpeg', 0.75);
+        onUpdateUser({ ...currentUser, avatarUrl });
+      };
+      image.onerror = () => setAvatarError('No se pudo procesar la imagen.');
+      image.src = e.target?.result as string;
     };
     reader.readAsDataURL(file);
   };
@@ -176,6 +185,8 @@ export const PerfilTab: React.FC<Props> = ({
               }}
             />
           </div>
+
+          {avatarError && <p className="mt-2 text-xs text-red-300">{avatarError}</p>}
 
           {/* User Name & Role */}
           <h2 className="text-xl font-extrabold text-white flex items-center gap-2">

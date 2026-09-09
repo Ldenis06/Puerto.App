@@ -10,7 +10,11 @@ const LOCATION_SHARING_KEY = 'puerto_app_location_sharing_v1';
 
 function mergeWithInitialUsers(users: User[]): User[] {
   const savedById = new Map(users.filter((user) => user?.id).map((user) => [user.id, user]));
-  const baseUsers = INITIAL_USERS.map((base) => ({ ...base, ...(savedById.get(base.id) || {}) }));
+  const baseUsers = INITIAL_USERS.map((base) => {
+    const saved = savedById.get(base.id) || {};
+    const avatarUrl = typeof saved.avatarUrl === 'string' && saved.avatarUrl.startsWith('data:') && saved.avatarUrl.length > 180000 ? base.avatarUrl : saved.avatarUrl;
+    return { ...base, ...saved, ...(avatarUrl ? { avatarUrl } : {}) };
+  });
   const extras = users.filter((user) => user?.id && !INITIAL_USERS.some((base) => base.id === user.id));
   return [...baseUsers, ...extras];
 }

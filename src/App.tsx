@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { collection, deleteDoc, doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { Expense, ProximityAlert, RouletteResult, User } from './types';
 import {
@@ -59,6 +59,7 @@ export default function App() {
   const [expenses, setExpenses] = useState<Expense[]>(() => getStoredExpenses());
   const [rouletteHistory, setRouletteHistory] = useState<RouletteResult | null>(() => getStoredRoulette());
   const [syncError, setSyncError] = useState<string | null>(null);
+  const finishSplash = useCallback(() => setShowSplash(false), []);
 
   // Remote avatar providers can be blocked by a device, DNS filter, or offline mode.
   // Keep every profile identifiable by replacing only failed images with a local SVG.
@@ -403,7 +404,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col justify-between selection:bg-[#0A84FF] selection:text-white">
       {/* Splash Screen */}
-      {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
+      {showSplash && <SplashScreen onFinish={finishSplash} />}
 
       {syncError && (
         <div role="alert" className="fixed z-[80] top-4 left-4 right-4 max-w-xl mx-auto rounded-2xl border border-[#FF375F]/40 bg-zinc-950 p-3 text-xs text-[#FFB3C1] shadow-2xl flex items-center justify-between gap-3">

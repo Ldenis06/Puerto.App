@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Puerto App</string>
+    <string name="title_activity_main">Puerto App</string>
+    <string name="package_name">com.puertoapp.grupo</string>
+    <string name="custom_url_scheme">com.puertoapp.grupo</string>
+</resources>

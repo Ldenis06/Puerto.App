@@ -35,9 +35,10 @@ function localAvatar(name: string, url: string) {
   // Profile uploads are stored as data URLs. Every network URL is replaced so
   // the group list never waits for, or breaks because of, a third-party host.
   if (typeof url === 'string' && url.startsWith('data:image/')) return url;
-  const initials = name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+  const safeName = typeof name === 'string' && name.trim() ? name : 'Usuario';
+  const initials = safeName.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
   const palette = ['#0A84FF', '#30D158', '#FF9500', '#BF5AF2', '#FFD60A', '#FF375F'];
-  const color = palette[[...name].reduce((total, char) => total + char.charCodeAt(0), 0) % palette.length];
+  const color = palette[[...safeName].reduce((total, char) => total + char.charCodeAt(0), 0) % palette.length];
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="40" fill="${color}"/><text x="40" y="49" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" font-weight="700" fill="white">${initials}</text></svg>`;
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
@@ -99,7 +100,10 @@ export default function App() {
         // are assigned. Keep the remaining local group members visible until
         // each of them has a cloud document of their own.
         const remoteById = new Map(remoteUsers.map((member) => [member.id, member]));
-        const mergedUsers = currentUsers.map((member) => remoteById.get(member.id) || member);
+        const mergedUsers = currentUsers.map((member) => {
+          const remote = remoteById.get(member.id);
+          return remote ? { ...member, ...remote, avatarUrl: localAvatar(remote.name || member.name, remote.avatarUrl || member.avatarUrl) } : member;
+        });
         const additionalUsers = remoteUsers.filter((member) => !currentUsers.some((current) => current.id === member.id));
         const nextUsers = [...mergedUsers, ...additionalUsers];
         saveStoredUsers(nextUsers);

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'puerto-app-v3';
+const CACHE_NAME = 'puerto-app-v4';
 const APP_SHELL = ['./', './manifest.webmanifest', './icons/icon.svg'];
 
 self.addEventListener('install', (event) => {

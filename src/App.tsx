@@ -32,7 +32,9 @@ import { firebaseAuth, firestore, signInWithGoogle } from './services/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 function localAvatar(name: string, url: string) {
-  if (typeof url === 'string' && !url.includes('api.dicebear.com')) return url;
+  // Keep real uploaded images (JPEG/PNG/WebP). Earlier app versions stored
+  // generated SVG fallbacks in localStorage, so regenerate those consistently.
+  if (typeof url === 'string' && !url.includes('api.dicebear.com') && !url.startsWith('data:image/svg+xml')) return url;
   const safeName = typeof name === 'string' && name.trim() ? name : 'Usuario';
   const variants = [
     ['#0A84FF', 'M14 42Q14 18 28 28Q40 10 52 28Q66 18 66 42Q66 66 40 68Q14 66 14 42', '18', '62'],

@@ -34,10 +34,16 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 function localAvatar(name: string, url: string) {
   if (typeof url === 'string' && !url.includes('api.dicebear.com')) return url;
   const safeName = typeof name === 'string' && name.trim() ? name : 'Usuario';
-  const initials = safeName.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
-  const palette = ['#0A84FF', '#30D158', '#FF9500', '#BF5AF2', '#FFD60A', '#FF375F'];
-  const color = palette[[...safeName].reduce((total, char) => total + char.charCodeAt(0), 0) % palette.length];
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="40" fill="${color}"/><text x="40" y="49" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" font-weight="700" fill="white">${initials}</text></svg>`;
+  const variants = [
+    ['#0A84FF', 'M14 42Q14 18 28 28Q40 10 52 28Q66 18 66 42Q66 66 40 68Q14 66 14 42', '18', '62'],
+    ['#30D158', 'M12 42Q12 16 40 16Q68 16 68 42Q68 68 40 68Q12 68 12 42', '40', '40'],
+    ['#FF9500', 'M16 62Q8 28 24 26L20 12L34 24Q40 18 46 24L60 12L56 26Q72 28 64 62Z', '27', '53'],
+    ['#BF5AF2', 'M12 52Q12 18 40 18Q68 18 68 52Q62 70 40 68Q18 70 12 52', '25', '55'],
+    ['#FFD60A', 'M16 20H64V64H16Z', '28', '52'],
+    ['#FF375F', 'M10 46Q16 20 40 18Q64 20 70 46Q62 70 40 68Q18 70 10 46', '24', '56'],
+  ];
+  const [color, body, leftEye, rightEye] = variants[[...safeName].reduce((total, char) => total + char.charCodeAt(0), 0) % variants.length];
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="40" fill="#111827"/><path d="${body}" fill="${color}" stroke="#fff" stroke-width="2"/><circle cx="${leftEye}" cy="38" r="7" fill="#fff"/><circle cx="${rightEye}" cy="38" r="7" fill="#fff"/><circle cx="${leftEye}" cy="39" r="3" fill="#111827"/><circle cx="${rightEye}" cy="39" r="3" fill="#111827"/><path d="M30 54Q40 61 50 54" fill="none" stroke="#111827" stroke-width="3" stroke-linecap="round"/></svg>`;
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 

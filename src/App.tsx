@@ -31,9 +31,21 @@ import confetti from 'canvas-confetti';
 import { firebaseAuth, firestore, signInWithGoogle } from './services/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 
+function localAvatar(name: string, url: string) {
+  if (!url.includes('api.dicebear.com')) return url;
+  const initials = name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+  const palette = ['#0A84FF', '#30D158', '#FF9500', '#BF5AF2', '#FFD60A', '#FF375F'];
+  const color = palette[[...name].reduce((total, char) => total + char.charCodeAt(0), 0) % palette.length];
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="40" fill="${color}"/><text x="40" y="49" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" font-weight="700" fill="white">${initials}</text></svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
 export default function App() {
-  const [users, setUsers] = useState<User[]>(() => getStoredUsers());
-  const [user, setUser] = useState<User | null>(() => getCurrentUser());
+  const [users, setUsers] = useState<User[]>(() => getStoredUsers().map((member) => ({ ...member, avatarUrl: localAvatar(member.name, member.avatarUrl) })));
+  const [user, setUser] = useState<User | null>(() => {
+    const stored = getCurrentUser();
+    return stored ? { ...stored, avatarUrl: localAvatar(stored.name, stored.avatarUrl) } : null;
+  });
   const [activeTab, setActiveTab] = useState<TabType>('ruleta');
   const [expenses, setExpenses] = useState<Expense[]>(() => getStoredExpenses());
   const [rouletteHistory, setRouletteHistory] = useState<RouletteResult | null>(() => getStoredRoulette());
@@ -76,7 +88,10 @@ export default function App() {
     if (!firebaseAuth.currentUser) return;
     return onSnapshot(collection(firestore, 'members'), (snapshot) => {
       if (snapshot.empty) return;
-      const remoteUsers = snapshot.docs.map((item) => item.data() as User);
+      const remoteUsers = snapshot.docs.map((item) => {
+        const member = item.data() as User;
+        return { ...member, avatarUrl: localAvatar(member.name, member.avatarUrl) };
+      });
       setUsers((currentUsers) => {
         // The administrator creates member documents progressively as emails
         // are assigned. Keep the remaining local group members visible until

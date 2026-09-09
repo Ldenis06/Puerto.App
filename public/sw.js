@@ -1,4 +1,4 @@
-const CACHE_NAME = 'puerto-app-v2';
+const CACHE_NAME = 'puerto-app-v3';
 const APP_SHELL = ['./', './manifest.webmanifest', './icons/icon.svg'];
 
 self.addEventListener('install', (event) => {
@@ -25,6 +25,18 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE_NAME).then((cache) => cache.put('./', copy));
         return response;
       }).catch(() => caches.match('./')),
+    );
+    return;
+  }
+
+  // Scripts and styles must be network-first. Otherwise a cached old bundle
+  // can be combined with a newer HTML file and leave the React screen blank.
+  if (new URL(event.request.url).origin === self.location.origin) {
+    event.respondWith(
+      fetch(event.request).then((response) => {
+        if (response.ok) caches.open(CACHE_NAME).then((cache) => cache.put(event.request, response.clone()));
+        return response;
+      }).catch(() => caches.match(event.request)),
     );
     return;
   }

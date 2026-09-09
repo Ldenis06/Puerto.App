@@ -39,6 +39,21 @@ export default function App() {
   const [rouletteHistory, setRouletteHistory] = useState<RouletteResult | null>(() => getStoredRoulette());
   const [syncError, setSyncError] = useState<string | null>(null);
 
+  // Remote avatar providers can be blocked by a device, DNS filter, or offline mode.
+  // Keep every profile identifiable by replacing only failed images with a local SVG.
+  useEffect(() => {
+    const handleImageError = (event: Event) => {
+      const image = event.target;
+      if (!(image instanceof HTMLImageElement) || image.dataset.avatarFallback === 'true') return;
+      image.dataset.avatarFallback = 'true';
+      const label = image.alt?.trim() || 'Usuario';
+      const initials = label.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="40" fill="#0A84FF"/><text x="40" y="49" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" font-weight="700" fill="white">${initials}</text></svg>`;
+      image.src = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+    };
+    document.addEventListener('error', handleImageError, true);
+    return () => document.removeEventListener('error', handleImageError, true);
+  }, []);
   // Once signed in, Firestore is the shared source for expenses and consented locations.
   useEffect(() => {
     if (!user) return;

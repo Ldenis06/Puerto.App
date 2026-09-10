@@ -1,4 +1,4 @@
-export type Role = 'member';
+export type Role = 'admin' | 'member';
 
 export interface UserLocation {
   lat: number;

@@ -7,6 +7,7 @@ import {
   Check,
   CheckCircle2,
   DollarSign,
+  Trash2,
   Plus,
   Receipt,
   Users,
@@ -18,6 +19,8 @@ interface Props {
   expenses: Expense[];
   onAddExpense: (newExpense: Omit<Expense, 'id' | 'createdAt' | 'isPaid' | 'individualQuota'>) => void;
   onMarkAsPaid: (expenseId: string) => void;
+  canManageExpenses: boolean;
+  onClearAllExpenses: () => void;
 }
 
 export const GastosTab: React.FC<Props> = ({
@@ -26,12 +29,15 @@ export const GastosTab: React.FC<Props> = ({
   expenses,
   onAddExpense,
   onMarkAsPaid,
+  canManageExpenses,
+  onClearAllExpenses,
 }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [concept, setConcept] = useState('');
   const [amount, setAmount] = useState('');
   const [payerId, setPayerId] = useState<string>(currentUser?.id || users[0].id);
   const [filterMode, setFilterMode] = useState<'all' | 'unpaid' | 'myDebts'>('unpaid');
+  const [showClearConfirmation, setShowClearConfirmation] = useState(false);
 
   // Participant switches for splitting
   const [participantMap, setParticipantMap] = useState<Record<string, boolean>>(() => {
@@ -123,6 +129,9 @@ export const GastosTab: React.FC<Props> = ({
             <h2 className="text-base font-bold text-white">División de Gastos</h2>
           </div>
           <div className="flex items-center gap-2">
+            {canManageExpenses && expenses.length > 0 && (
+              <button id="btn-admin-clear-expenses" type="button" onClick={() => setShowClearConfirmation(true)} className="rounded-xl border border-red-500/35 bg-red-500/15 p-2 text-red-300 transition hover:bg-red-500/25" title="Borrar todos los gastos" aria-label="Borrar todos los gastos"><Trash2 className="h-4 w-4" /></button>
+            )}
             <button
               id="btn-open-add-expense"
               type="button"
@@ -378,6 +387,10 @@ export const GastosTab: React.FC<Props> = ({
           })
         )}
       </div>
+
+      {showClearConfirmation && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md"><div role="alertdialog" aria-modal="true" className="w-full max-w-sm rounded-[26px] border border-red-500/40 bg-zinc-950 p-5 shadow-2xl"><div className="flex items-start gap-3"><div className="rounded-xl bg-red-500/15 p-2 text-red-300"><Trash2 className="h-5 w-5" /></div><div><h3 className="font-bold text-white">Borrar todos los gastos</h3><p className="mt-1 text-xs leading-relaxed text-zinc-400">Se eliminarán {expenses.length} registros de este dispositivo. No se puede deshacer.</p></div></div><div className="mt-5 grid grid-cols-2 gap-2"><button type="button" onClick={() => setShowClearConfirmation(false)} className="rounded-xl border border-white/15 py-2.5 text-xs font-bold text-zinc-300">Cancelar</button><button id="btn-confirm-clear-expenses" type="button" onClick={() => { onClearAllExpenses(); setShowClearConfirmation(false); }} className="rounded-xl bg-red-500 py-2.5 text-xs font-bold text-white">Borrar todo</button></div></div></div>
+      )}
 
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">

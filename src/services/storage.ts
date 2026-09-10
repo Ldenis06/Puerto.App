@@ -3,7 +3,9 @@ import { INITIAL_EXPENSES, INITIAL_USERS } from '../data/initialData';
 
 const USERS_KEY = 'puerto_app_users_v1';
 const EXPENSES_KEY = 'puerto_app_expenses_v1';
+const EXPENSES_RESET_VERSION_KEY = 'puerto_app_expenses_reset_v2';
 const CURRENT_USER_KEY = 'puerto_app_current_user_v1';
+const PROFILE_SELECTION_VERSION_KEY = 'puerto_app_profile_selection_v1';
 const ROULETTE_KEY = 'puerto_app_roulette_v1';
 const DISMISSED_ALERTS_KEY = 'puerto_app_dismissed_alerts_v1';
 const LOCATION_SHARING_KEY = 'puerto_app_location_sharing_v1';
@@ -13,7 +15,7 @@ function mergeWithInitialUsers(users: User[]): User[] {
   const baseUsers = INITIAL_USERS.map((base) => {
     const saved: Partial<User> = savedById.get(base.id) || {};
     const avatarUrl = typeof saved.avatarUrl === 'string' && saved.avatarUrl.startsWith('data:') && saved.avatarUrl.length > 180000 ? base.avatarUrl : saved.avatarUrl;
-    return { ...base, ...saved, role: 'member' as const, ...(avatarUrl ? { avatarUrl } : {}) };
+    return { ...base, ...saved, role: base.id === 'denis' ? 'admin' as const : 'member' as const, ...(avatarUrl ? { avatarUrl } : {}) };
   });
   const extras = users.filter((user) => user?.id && !INITIAL_USERS.some((base) => base.id === user.id));
   return [...baseUsers, ...extras];
@@ -42,6 +44,12 @@ export function saveStoredUsers(users: User[]): void {
 
 export function getCurrentUser(): User | null {
   try {
+    // Existing installations must choose a profile once under the new lock.
+    if (localStorage.getItem(PROFILE_SELECTION_VERSION_KEY) !== '1') {
+      localStorage.removeItem(CURRENT_USER_KEY);
+      localStorage.setItem(PROFILE_SELECTION_VERSION_KEY, '1');
+      return null;
+    }
     const id = localStorage.getItem(CURRENT_USER_KEY);
     if (!id) {
       return null;
@@ -71,6 +79,13 @@ export function setLocationSharingEnabled(userId: string, enabled: boolean): voi
 
 export function getStoredExpenses(): Expense[] {
   try {
+    // One-time reset requested by the group administrator. This runs after the
+    // update on each device, then keeps any newly created expenses intact.
+    if (localStorage.getItem(EXPENSES_RESET_VERSION_KEY) !== '2') {
+      localStorage.setItem(EXPENSES_KEY, JSON.stringify([]));
+      localStorage.setItem(EXPENSES_RESET_VERSION_KEY, '2');
+      return [];
+    }
     const raw = localStorage.getItem(EXPENSES_KEY);
     if (!raw) {
       localStorage.setItem(EXPENSES_KEY, JSON.stringify(INITIAL_EXPENSES));

@@ -8,6 +8,7 @@ import {
   getStoredRoulette,
   getStoredUsers,
   saveStoredExpenses,
+  clearStoredExpenses,
   saveStoredRoulette,
   saveStoredUsers,
   setCurrentUser,
@@ -26,6 +27,14 @@ import { MemberProfileModal } from './components/MemberProfileModal';
 import { NotificationsModal } from './components/NotificationsModal';
 import { SplashScreen } from './components/SplashScreen';
 import confetti from 'canvas-confetti';
+
+const DENIS_PASSWORD_DIGEST = 'a00fce1d15fb5583cdd36bdfc3fd3a2fec84b3d43abeff1bb4f95a1a557f0e51';
+
+async function sha256(value: string): Promise<string> {
+  const data = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
 
 function localAvatar(name: string, url: string) {
   // Keep real uploaded images (JPEG/PNG/WebP). Earlier app versions stored
@@ -151,15 +160,12 @@ export default function App() {
   ).length;
 
   // Handlers for session
-  const handleLogin = (newUser: User) => {
+  const handleLogin = async (newUser: User, password?: string): Promise<boolean> => {
+    if (newUser.id === 'denis' && await sha256(password || '') !== DENIS_PASSWORD_DIGEST) return false;
     const current = users.find((member) => member.id === newUser.id) || newUser;
     setUser(current);
     setCurrentUser(current.id);
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    setCurrentUser(null);
+    return true;
   };
 
   // Handlers for users update
@@ -245,6 +251,12 @@ export default function App() {
     saveStoredExpenses(nextExpenses);
   };
 
+  const handleClearAllExpenses = () => {
+    if (user?.id !== 'denis' || user.role !== 'admin') return;
+    setExpenses([]);
+    clearStoredExpenses();
+  };
+
   const handleSaveRouletteResult = (res: RouletteResult) => {
     setRouletteHistory(res);
     saveStoredRoulette(res);
@@ -271,7 +283,6 @@ export default function App() {
           users={users}
           alerts={proximityAlerts}
           onSelectMember={(member) => setInspectedMember(member)}
-          onOpenAuthModal={handleLogout}
           onOpenNotifications={() => setShowNotificationsModal(true)}
           todayBirthdayMember={todayBirthdayMember}
         />
@@ -342,6 +353,8 @@ export default function App() {
               expenses={expenses}
               onAddExpense={handleAddExpense}
               onMarkAsPaid={handleMarkAsPaid}
+              canManageExpenses={user?.id === 'denis' && user.role === 'admin'}
+              onClearAllExpenses={handleClearAllExpenses}
             />
           )}
 
@@ -349,6 +362,8 @@ export default function App() {
             <PerfilTab
               currentUser={user}
               onUpdateUser={handleUpdateUser}
+              isAdmin={user?.id === 'denis' && user.role === 'admin'}
+              onClearAllExpenses={handleClearAllExpenses}
             />
           )}
         </main>
@@ -368,7 +383,6 @@ export default function App() {
         currentUser={user}
         expenses={expenses}
         onClose={() => setInspectedMember(null)}
-        onSelectAsActiveUser={() => setInspectedMember(null)}
       />
 
       {/* Notifications and Birthday Simulation Drawer */}

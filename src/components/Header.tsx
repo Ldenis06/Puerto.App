@@ -8,7 +8,6 @@ interface Props {
   users: User[];
   alerts: ProximityAlert[];
   onSelectMember: (user: User) => void;
-  onOpenAuthModal: () => void;
   onOpenNotifications: () => void;
   todayBirthdayMember?: User | null;
 }
@@ -18,7 +17,6 @@ export const Header: React.FC<Props> = ({
   users,
   alerts,
   onSelectMember,
-  onOpenAuthModal,
   onOpenNotifications,
   todayBirthdayMember,
 }) => {
@@ -62,12 +60,10 @@ export const Header: React.FC<Props> = ({
             )}
           </button>
 
-          {/* Active User Switcher Pill */}
-          <button
+          {/* Fixed active profile */}
+          <div
             id="user-session-pill"
-            type="button"
-            onClick={onOpenAuthModal}
-            className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 transition text-left"
+            className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-left"
           >
             {currentUser ? (
               <>
@@ -83,7 +79,7 @@ export const Header: React.FC<Props> = ({
                   <div className="text-xs font-semibold text-white flex items-center gap-1">
                     {currentUser.name}
                   </div>
-                  <div className="text-[10px] text-zinc-400">Cambiar</div>
+                  <div className="text-[10px] text-zinc-400">Tu perfil</div>
                 </div>
               </>
             ) : (
@@ -92,7 +88,7 @@ export const Header: React.FC<Props> = ({
                 <span>Ingresar</span>
               </div>
             )}
-          </button>
+          </div>
         </div>
       </div>
 

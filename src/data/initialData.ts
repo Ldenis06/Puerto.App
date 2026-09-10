@@ -5,7 +5,7 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'denis',
     name: 'Denis',
-    role: 'member',
+    role: 'admin',
     pin: 'denis123',
     birthday: '24/08',
     bio: 'CEO del caos y financista frustrado.',
@@ -106,36 +106,4 @@ export const INITIAL_USERS: User[] = [
   },
 ];
 
-export const INITIAL_EXPENSES = [
-  {
-    id: 'exp-1',
-    concept: 'Gomitas en el kiosco de Alca',
-    totalAmount: 12000,
-    payerId: 'alca',
-    participantIds: ['denis', 'maxi', 'drizza', 'castro', 'alan', 'alca'],
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    isPaid: false,
-    individualQuota: 2000,
-  },
-  {
-    id: 'exp-2',
-    concept: 'Nafta de la nave de Maxi',
-    totalAmount: 18000,
-    payerId: 'maxi',
-    participantIds: ['denis', 'maxi', 'castro'],
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-    isPaid: false,
-    individualQuota: 6000,
-  },
-  {
-    id: 'exp-3',
-    concept: 'Cena con cupones dudosos',
-    totalAmount: 30000,
-    payerId: 'denis',
-    participantIds: ['denis', 'maxi', 'drizza', 'alan'],
-    createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
-    isPaid: true,
-    paidAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-    individualQuota: 7500,
-  },
-];
+export const INITIAL_EXPENSES = [];

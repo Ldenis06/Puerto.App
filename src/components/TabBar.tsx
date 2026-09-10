@@ -1,7 +1,7 @@
 import React from 'react';
-import { Dices, MapPin, Receipt, Sparkles, User } from 'lucide-react';
+import { Dices, MapPin, NotebookText, Receipt, Sparkles, User } from 'lucide-react';
 
-export type TabType = 'ruleta' | 'mapa' | 'salidas' | 'gastos' | 'perfil';
+export type TabType = 'ruleta' | 'mapa' | 'salidas' | 'libretas' | 'gastos' | 'perfil';
 
 interface Props {
   activeTab: TabType;
@@ -14,6 +14,7 @@ export const TabBar: React.FC<Props> = ({ activeTab, onChangeTab, pendingDebtCou
     { id: 'ruleta' as TabType, label: 'Ruleta', icon: Dices },
     { id: 'mapa' as TabType, label: 'Mapa', icon: MapPin },
     { id: 'salidas' as TabType, label: 'Salidas', icon: Sparkles },
+    { id: 'libretas' as TabType, label: 'Libretas', icon: NotebookText },
     { id: 'gastos' as TabType, label: 'Gastos', icon: Receipt, badge: pendingDebtCount },
     { id: 'perfil' as TabType, label: 'Perfil', icon: User },
   ];

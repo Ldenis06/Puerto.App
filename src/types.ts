@@ -32,6 +32,13 @@ export interface Expense {
   individualQuota: number;
 }
 
+export interface NotebookNote {
+  id: string;
+  body: string;
+  author_name: string;
+  created_at: string;
+}
+
 export type RouletteMode = 'pairs' | 'trios' | 'solo';
 
 export interface RouletteTeam {

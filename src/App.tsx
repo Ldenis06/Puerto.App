@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { collection, deleteDoc, doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { Expense, ProximityAlert, RouletteResult, User } from './types';
 import {
   checkBirthdays,
@@ -9,7 +8,6 @@ import {
   getStoredRoulette,
   getStoredUsers,
   saveStoredExpenses,
-  clearStoredExpenses,
   saveStoredRoulette,
   saveStoredUsers,
   setCurrentUser,
@@ -23,13 +21,11 @@ import { MapaTab } from './components/tabs/MapaTab';
 import { GastosTab } from './components/tabs/GastosTab';
 import { PerfilTab } from './components/tabs/PerfilTab';
 import { SalidasTab } from './components/tabs/SalidasTab';
-import { GoogleLoginGate } from './components/GoogleLoginGate';
+import { NameLoginGate } from './components/NameLoginGate';
 import { MemberProfileModal } from './components/MemberProfileModal';
 import { NotificationsModal } from './components/NotificationsModal';
 import { SplashScreen } from './components/SplashScreen';
 import confetti from 'canvas-confetti';
-import { firebaseAuth, firestore, signInWithGoogle } from './services/firebase';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 function localAvatar(name: string, url: string) {
   // Keep real uploaded images (JPEG/PNG/WebP). Earlier app versions stored
@@ -58,7 +54,6 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('ruleta');
   const [expenses, setExpenses] = useState<Expense[]>(() => getStoredExpenses());
   const [rouletteHistory, setRouletteHistory] = useState<RouletteResult | null>(() => getStoredRoulette());
-  const [syncError, setSyncError] = useState<string | null>(null);
   const finishSplash = useCallback(() => setShowSplash(false), []);
 
   // Remote avatar providers can be blocked by a device, DNS filter, or offline mode.
@@ -76,59 +71,6 @@ export default function App() {
     document.addEventListener('error', handleImageError, true);
     return () => document.removeEventListener('error', handleImageError, true);
   }, []);
-  // Once signed in, Firestore is the shared source for expenses and consented locations.
-  useEffect(() => {
-    if (!user) return;
-    const stopExpenses = onSnapshot(collection(firestore, 'expenses'), (snapshot) => {
-      setExpenses(snapshot.docs.map((item) => item.data() as Expense));
-    });
-    const stopLocations = onSnapshot(collection(firestore, 'locations'), (snapshot) => {
-      const locations = new Map(snapshot.docs.map((item) => [item.id, item.data()]));
-      setUsers((current) => current.map((member) => {
-        const location = locations.get(member.id);
-        return location ? { ...member, location } : member;
-      }));
-    });
-    return () => { stopExpenses(); stopLocations(); };
-  }, [user?.id]);
-
-  // Member identities are shared data. This makes Google assignments made by
-  // Denis visible on every device instead of keeping them only in one browser.
-  useEffect(() => {
-    if (!firebaseAuth.currentUser) return;
-    return onSnapshot(collection(firestore, 'members'), (snapshot) => {
-      if (snapshot.empty) return;
-      const remoteUsers = snapshot.docs.map((item) => {
-        const member = item.data() as User;
-        return { ...member, avatarUrl: localAvatar(member.name, member.avatarUrl) };
-      });
-      setUsers((currentUsers) => {
-        // The administrator creates member documents progressively as emails
-        // are assigned. Keep the remaining local group members visible until
-        // each of them has a cloud document of their own.
-        const remoteById = new Map(remoteUsers.map((member) => [member.id, member]));
-        const mergedUsers = currentUsers.map((member) => {
-          const remote = remoteById.get(member.id);
-          return remote ? { ...member, ...remote, avatarUrl: localAvatar(remote.name || member.name, remote.avatarUrl || member.avatarUrl) } : member;
-        });
-        const additionalUsers = remoteUsers.filter((member) => !currentUsers.some((current) => current.id === member.id));
-        const nextUsers = [...mergedUsers, ...additionalUsers];
-        saveStoredUsers(nextUsers);
-        return nextUsers;
-      });
-      setUser((current) => current ? remoteUsers.find((member) => member.id === current.id) || current : current);
-    }, () => setSyncError('No se pudieron sincronizar los perfiles. Revisá la conexión e intentá de nuevo.'));
-  }, [firebaseAuth.currentUser?.uid]);
-
-  // Firebase keeps the Google session in this browser. On a later visit, use
-  // its verified email to reopen the assigned profile without asking again.
-  useEffect(() => onAuthStateChanged(firebaseAuth, (account) => {
-    const email = account?.email?.trim().toLowerCase();
-    if (!email || user) return;
-    const assigned = users.find((member) => member.linkedAuth?.accountEmail.toLowerCase() === email);
-    if (assigned) handleLogin(assigned);
-  }), [users, user?.id]);
-
   // Modals & UI states
   const [showSplash, setShowSplash] = useState(true);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
@@ -159,12 +101,6 @@ export default function App() {
         setUsers((current) => {
           const next = current.map((member) => member.id === user.id ? { ...member, location } : member);
           saveStoredUsers(next);
-          if (firebaseAuth.currentUser?.email) {
-            void setDoc(doc(firestore, 'locations', user.id), {
-              ...location,
-              ownerEmail: firebaseAuth.currentUser.email.toLowerCase(),
-            });
-          }
           return next;
         });
         setUser((current) => current?.id === user.id ? { ...current, location } : current);
@@ -222,38 +158,15 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    void signOut(firebaseAuth);
     setUser(null);
     setCurrentUser(null);
   };
 
   // Handlers for users update
-  const handleUpdateUser = async (updatedUser: User): Promise<boolean> => {
+  const handleUpdateUser = (updatedUser: User): boolean => {
     const nextUsers = users.map((u) => (u.id === updatedUser.id ? updatedUser : u));
     setUsers(nextUsers);
     saveStoredUsers(nextUsers);
-
-    // Changes made by the administrator (including account assignments) must
-    // reach every phone. A failed write is surfaced instead of silently
-    // appearing saved only on this device.
-    if (firebaseAuth.currentUser?.email) {
-      try {
-        await setDoc(doc(firestore, 'members', updatedUser.id), updatedUser);
-      } catch {
-        setSyncError('No se pudo guardar la asignación. Ingresá con la cuenta administradora denislautaro6@gmail.com y reintentá.');
-        return false;
-      }
-    }
-
-    if (user?.id === updatedUser.id && firebaseAuth.currentUser?.email) {
-      const location = nextUsers.find((u) => u.id === updatedUser.id)?.location;
-      if (location) {
-        void setDoc(doc(firestore, 'locations', updatedUser.id), {
-          ...location,
-          ownerEmail: firebaseAuth.currentUser.email.toLowerCase(),
-        });
-      }
-    }
 
     if (user?.id === updatedUser.id) {
       setUser(updatedUser);
@@ -262,44 +175,6 @@ export default function App() {
       setInspectedMember(updatedUser);
     }
     return true;
-  };
-
-  // Federated account linking
-  const handleLinkFederatedAuth = async (userId: string, provider: 'google' | 'apple', email: string): Promise<boolean> => {
-    const cleanEmail = email.trim().toLowerCase();
-    if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) {
-      setSyncError('Ingresá un correo electrónico válido.');
-      return false;
-    }
-    const linkedToAnotherMember = users.find((member) => member.id !== userId && member.linkedAuth?.accountEmail?.toLowerCase() === cleanEmail);
-    if (linkedToAnotherMember) {
-      setSyncError(`Ese correo ya está asignado a ${linkedToAnotherMember.name}.`);
-      return false;
-    }
-    const target = users.find((u) => u.id === userId);
-    if (!target) return false;
-
-    const updated: User = {
-      ...target,
-      linkedAuth: {
-        provider,
-        accountEmail: cleanEmail,
-        linkedAt: new Date().toISOString(),
-      },
-    };
-    return handleUpdateUser(updated);
-  };
-
-  // Unlink federated account (Admin Denis only)
-  const handleUnlinkAuth = (targetUserId: string) => {
-    const target = users.find((u) => u.id === targetUserId);
-    if (!target) return;
-
-    const updated: User = {
-      ...target,
-      linkedAuth: undefined,
-    };
-    handleUpdateUser(updated);
   };
 
   // Geolocation update for a user
@@ -333,17 +208,11 @@ export default function App() {
 
     if (user?.id === userId) {
       setUser(nextUsers.find((u) => u.id === userId) || null);
-      if (firebaseAuth.currentUser?.email) {
-        void setDoc(doc(firestore, 'locations', userId), {
-          ...location,
-          ownerEmail: firebaseAuth.currentUser.email.toLowerCase(),
-        });
-      }
     }
   };
 
   // Expenses management
-  const handleAddExpense = async (
+  const handleAddExpense = (
     newExpData: Omit<Expense, 'id' | 'createdAt' | 'isPaid' | 'individualQuota'>
   ) => {
     const individualQuota = Math.round(newExpData.totalAmount / newExpData.participantIds.length);
@@ -355,17 +224,12 @@ export default function App() {
       individualQuota,
     };
 
-    try {
-      await setDoc(doc(firestore, 'expenses', newExpense.id), newExpense);
-      const nextExpenses = [newExpense, ...expenses];
-      setExpenses(nextExpenses);
-      saveStoredExpenses(nextExpenses);
-    } catch {
-      setSyncError('El gasto no se guardó en la nube. Revisá la conexión e intentá nuevamente.');
-    }
+    const nextExpenses = [newExpense, ...expenses];
+    setExpenses(nextExpenses);
+    saveStoredExpenses(nextExpenses);
   };
 
-  const handleMarkAsPaid = async (expenseId: string) => {
+  const handleMarkAsPaid = (expenseId: string) => {
     const nextExpenses = expenses.map((exp) => {
       if (exp.id === expenseId) {
         return {
@@ -377,28 +241,8 @@ export default function App() {
       return exp;
     });
 
-    const paidAt = new Date().toISOString();
-    try {
-      await updateDoc(doc(firestore, 'expenses', expenseId), { isPaid: true, paidAt });
-      const committed = nextExpenses.map((expense) => expense.id === expenseId ? { ...expense, paidAt } : expense);
-      setExpenses(committed);
-      saveStoredExpenses(committed);
-    } catch {
-      setSyncError('No se pudo marcar el gasto como pagado en la nube.');
-    }
-  };
-
-  // Only the administrator can invoke this handler from the expenses UI.
-  // It intentionally persists an empty list, so a reload cannot restore data.
-  const handleClearAllExpenses = async () => {
-    if (user?.role !== 'admin') return;
-    try {
-      await Promise.all(expenses.map((expense) => deleteDoc(doc(firestore, 'expenses', expense.id))));
-      setExpenses([]);
-      clearStoredExpenses();
-    } catch {
-      setSyncError('No se pudieron borrar todos los gastos de la nube. No se eliminaron localmente.');
-    }
+    setExpenses(nextExpenses);
+    saveStoredExpenses(nextExpenses);
   };
 
   const handleSaveRouletteResult = (res: RouletteResult) => {
@@ -411,20 +255,11 @@ export default function App() {
       {/* Splash Screen */}
       {showSplash && <SplashScreen onFinish={finishSplash} />}
 
-      {syncError && (
-        <div role="alert" className="fixed z-[80] top-4 left-4 right-4 max-w-xl mx-auto rounded-2xl border border-[#FF375F]/40 bg-zinc-950 p-3 text-xs text-[#FFB3C1] shadow-2xl flex items-center justify-between gap-3">
-          <span>{syncError}</span>
-          <button type="button" onClick={() => setSyncError(null)} className="text-white text-[11px] font-bold">Cerrar</button>
-        </div>
-      )}
-
-      {/* Google Login Gate when user is not logged in */}
+      {/* Local profile selection when user is not logged in */}
       {!user && !showSplash && (
-        <GoogleLoginGate
+        <NameLoginGate
           users={users}
           onLogin={handleLogin}
-          onLinkGoogleAuth={(userId, email) => handleLinkFederatedAuth(userId, 'google', email)}
-          onRequestGoogleLogin={signInWithGoogle}
         />
       )}
 
@@ -507,17 +342,13 @@ export default function App() {
               expenses={expenses}
               onAddExpense={handleAddExpense}
               onMarkAsPaid={handleMarkAsPaid}
-              onClearAllExpenses={handleClearAllExpenses}
             />
           )}
 
           {activeTab === 'perfil' && (
             <PerfilTab
               currentUser={user}
-              users={users}
               onUpdateUser={handleUpdateUser}
-              onUnlinkAuth={handleUnlinkAuth}
-              onLinkAuth={(targetUserId, email) => handleLinkFederatedAuth(targetUserId, 'google', email)}
             />
           )}
         </main>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { User, ProximityAlert } from '../types';
 import { PuenteDeLaMujerIcon } from './PuenteDeLaMujerIcon';
-import { Bell, ShieldCheck, UserCheck } from 'lucide-react';
+import { Bell, UserCheck } from 'lucide-react';
 
 interface Props {
   currentUser: User | null;
@@ -77,22 +77,11 @@ export const Header: React.FC<Props> = ({
                     alt={currentUser.name}
                     className="w-7 h-7 rounded-full object-cover border border-white/20 bg-zinc-800"
                   />
-                  {currentUser.role === 'admin' ? (
-                    <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-[#0A84FF] rounded-full flex items-center justify-center border border-black text-white" title="Administrador">
-                      <ShieldCheck className="w-2.5 h-2.5" />
-                    </span>
-                  ) : (
-                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[#30D158] rounded-full border border-black" />
-                  )}
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[#30D158] rounded-full border border-black" />
                 </div>
                 <div className="leading-tight pr-1">
                   <div className="text-xs font-semibold text-white flex items-center gap-1">
                     {currentUser.name}
-                    {currentUser.role === 'admin' && (
-                      <span className="text-[9px] text-[#0A84FF] font-bold bg-[#0A84FF]/15 px-1 py-0.2 rounded-sm uppercase tracking-wider">
-                        Admin
-                      </span>
-                    )}
                   </div>
                   <div className="text-[10px] text-zinc-400">Cambiar</div>
                 </div>
@@ -149,16 +138,6 @@ export const Header: React.FC<Props> = ({
                   {isBday && (
                     <span className="absolute -top-1.5 -right-1 text-xs animate-bounce" title="¡Cumpleañero!">
                       🎂
-                    </span>
-                  )}
-
-                  {/* Admin crown/badge indicator */}
-                  {u.role === 'admin' && !isBday && (
-                    <span
-                      className="absolute -top-1 -right-0.5 w-4 h-4 rounded-full bg-[#0A84FF] text-white flex items-center justify-center text-[9px] font-black border border-black shadow"
-                      title="Administrador (Denis)"
-                    >
-                      ★
                     </span>
                   )}
 

@@ -13,7 +13,7 @@ function mergeWithInitialUsers(users: User[]): User[] {
   const baseUsers = INITIAL_USERS.map((base) => {
     const saved: Partial<User> = savedById.get(base.id) || {};
     const avatarUrl = typeof saved.avatarUrl === 'string' && saved.avatarUrl.startsWith('data:') && saved.avatarUrl.length > 180000 ? base.avatarUrl : saved.avatarUrl;
-    return { ...base, ...saved, ...(avatarUrl ? { avatarUrl } : {}) };
+    return { ...base, ...saved, role: 'member' as const, ...(avatarUrl ? { avatarUrl } : {}) };
   });
   const extras = users.filter((user) => user?.id && !INITIAL_USERS.some((base) => base.id === user.id));
   return [...baseUsers, ...extras];
@@ -28,14 +28,6 @@ export function getStoredUsers(): User[] {
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      const denis = parsed.find((u: User) => u.id === 'denis');
-      if (denis && !denis.linkedAuth) {
-        denis.linkedAuth = {
-          provider: 'google',
-          accountEmail: 'denislautaro6@gmail.com',
-          linkedAt: '2025-01-01T00:00:00.000Z',
-        };
-      }
       return mergeWithInitialUsers(parsed);
     }
     return INITIAL_USERS;

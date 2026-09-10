@@ -58,11 +58,6 @@ export const MemberProfileModal: React.FC<Props> = ({
               alt={member.name}
               className="w-20 h-20 rounded-full object-cover border-2 border-[#0A84FF] shadow-[0_0_20px_rgba(10,132,255,0.4)] bg-zinc-900"
             />
-            {member.role === 'admin' && (
-              <span className="absolute -bottom-1 -right-1 px-2 py-0.5 rounded-full bg-[#0A84FF] text-white text-[9px] font-black uppercase tracking-wider border border-black shadow">
-                Admin
-              </span>
-            )}
           </div>
 
           <h3 className="text-lg font-bold text-white flex items-center gap-1.5">

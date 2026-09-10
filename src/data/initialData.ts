@@ -5,17 +5,12 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'denis',
     name: 'Denis',
-    role: 'admin',
+    role: 'member',
     pin: 'denis123',
     birthday: '24/08',
     bio: 'CEO del caos y financista frustrado.',
     aiDescription: 'CEO del caos y financista frustrado. Se gasta 30k en Clash Royale para perder 5 seguidas, organiza salidas a Puerto Madero con cupones dudosos y devuelve plata con "abrazos y besos".',
     avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=Denis&backgroundColor=0a84ff',
-    linkedAuth: {
-      provider: 'google',
-      accountEmail: 'denislautaro6@gmail.com',
-      linkedAt: '2025-01-01T00:00:00.000Z',
-    },
     location: {
       lat: -34.6083,
       lng: -58.3644,

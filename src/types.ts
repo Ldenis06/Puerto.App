@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'member';
+export type Role = 'member';
 
 export interface UserLocation {
   lat: number;
@@ -17,11 +17,6 @@ export interface User {
   bio: string;
   aiDescription: string;
   avatarUrl: string;
-  linkedAuth?: {
-    provider: 'google' | 'apple';
-    accountEmail: string;
-    linkedAt: string;
-  };
   location?: UserLocation;
 }
 

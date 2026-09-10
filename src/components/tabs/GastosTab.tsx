@@ -7,7 +7,6 @@ import {
   Check,
   CheckCircle2,
   DollarSign,
-  Trash2,
   Plus,
   Receipt,
   Users,
@@ -19,7 +18,6 @@ interface Props {
   expenses: Expense[];
   onAddExpense: (newExpense: Omit<Expense, 'id' | 'createdAt' | 'isPaid' | 'individualQuota'>) => void;
   onMarkAsPaid: (expenseId: string) => void;
-  onClearAllExpenses: () => void;
 }
 
 export const GastosTab: React.FC<Props> = ({
@@ -28,14 +26,12 @@ export const GastosTab: React.FC<Props> = ({
   expenses,
   onAddExpense,
   onMarkAsPaid,
-  onClearAllExpenses,
 }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [concept, setConcept] = useState('');
   const [amount, setAmount] = useState('');
   const [payerId, setPayerId] = useState<string>(currentUser?.id || users[0].id);
   const [filterMode, setFilterMode] = useState<'all' | 'unpaid' | 'myDebts'>('unpaid');
-  const [showClearConfirmation, setShowClearConfirmation] = useState(false);
 
   // Participant switches for splitting
   const [participantMap, setParticipantMap] = useState<Record<string, boolean>>(() => {
@@ -127,18 +123,6 @@ export const GastosTab: React.FC<Props> = ({
             <h2 className="text-base font-bold text-white">División de Gastos</h2>
           </div>
           <div className="flex items-center gap-2">
-            {currentUser?.role === 'admin' && expenses.length > 0 && (
-              <button
-                id="btn-admin-clear-expenses"
-                type="button"
-                onClick={() => setShowClearConfirmation(true)}
-                className="p-2 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/35 text-red-300 transition active:scale-95"
-                title="Borrar todos los gastos"
-                aria-label="Borrar todos los gastos"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            )}
             <button
               id="btn-open-add-expense"
               type="button"
@@ -244,16 +228,6 @@ export const GastosTab: React.FC<Props> = ({
                       Aviso fijado en tu cuenta hasta que {payerName} confirme el cobro.
                     </span>
 
-                    {/* If current user is Denis (admin), allow admin bypass */}
-                    {currentUser?.role === 'admin' && (
-                      <button
-                        type="button"
-                        onClick={() => onMarkAsPaid(debt.id)}
-                        className="text-[10px] text-[#5AC8FA] hover:underline font-bold"
-                      >
-                        Cobrar (Bypass Admin)
-                      </button>
-                    )}
                   </div>
                 </div>
               );
@@ -308,8 +282,7 @@ export const GastosTab: React.FC<Props> = ({
           filteredExpenses.map((exp) => {
             const payer = users.find((u) => u.id === exp.payerId);
             const isPayer = currentUser?.id === exp.payerId;
-            const isAdmin = currentUser?.role === 'admin';
-            const canMarkPaid = isPayer || isAdmin;
+            const canMarkPaid = isPayer;
 
             return (
               <div
@@ -405,39 +378,6 @@ export const GastosTab: React.FC<Props> = ({
           })
         )}
       </div>
-
-      {/* Modal: Anotar Gasto */}
-      {showClearConfirmation && currentUser?.role === 'admin' && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-          <div
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="clear-expenses-title"
-            className="w-full max-w-sm rounded-[26px] border border-red-500/40 bg-zinc-950 p-5 shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
-          >
-            <div className="flex items-start gap-3">
-              <div className="rounded-xl bg-red-500/15 p-2 text-red-300"><Trash2 className="w-5 h-5" /></div>
-              <div>
-                <h3 id="clear-expenses-title" className="text-base font-bold text-white">Borrar todos los gastos</h3>
-                <p className="mt-1 text-xs leading-relaxed text-zinc-400">
-                  Se eliminarán los {expenses.length} registros, incluso los pagados. No quedará historial en este navegador y no se puede deshacer.
-                </p>
-              </div>
-            </div>
-            <div className="mt-5 grid grid-cols-2 gap-2">
-              <button type="button" onClick={() => setShowClearConfirmation(false)} className="rounded-xl bg-white/10 px-3 py-2.5 text-xs font-bold text-white">Cancelar</button>
-              <button
-                id="btn-confirm-clear-expenses"
-                type="button"
-                onClick={() => { onClearAllExpenses(); setShowClearConfirmation(false); }}
-                className="rounded-xl bg-red-500 px-3 py-2.5 text-xs font-bold text-white hover:bg-red-400"
-              >
-                Sí, borrar todo
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">

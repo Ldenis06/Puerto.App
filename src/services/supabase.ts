@@ -32,6 +32,12 @@ export async function publishNotebookNote(body: string, password: string): Promi
   return data[0];
 }
 
+export async function deleteNotebookNote(noteId: string, password: string): Promise<void> {
+  await ensureAnonymousSession();
+  const { error } = await supabase.functions.invoke('delete-notebook-note', { body: { noteId, password } });
+  if (error) throw new Error('No se pudo borrar la publicación. Revisá la contraseña e intentá nuevamente.');
+}
+
 export async function getNotebookReactions(): Promise<NotebookReaction[]> {
   await ensureAnonymousSession();
   const { data, error } = await supabase.from('libretas_reactions').select('note_id, user_id, emoji');

@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Keeps the header below a notch or Dynamic Island on iPhone, with 12px on other screens. */
+.safe-area-top {
+  padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+}
+
 @layer utilities {
   /* Hide scrollbar for Chrome, Safari and Opera */
   .no-scrollbar::-webkit-scrollbar {

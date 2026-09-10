@@ -21,9 +21,9 @@ export const Header: React.FC<Props> = ({
   todayBirthdayMember,
 }) => {
   return (
-    <header className="sticky top-0 z-40 bg-black/85 backdrop-blur-2xl border-b border-white/10 shadow-2xl">
+    <header className="safe-area-top sticky top-0 z-40 bg-black/85 backdrop-blur-2xl border-b border-white/10 shadow-2xl">
       {/* Top Brand Bar */}
-      <div className="max-w-xl mx-auto px-4 pt-3 pb-2 flex items-center justify-between">
+      <div className="max-w-xl mx-auto px-4 pb-2 flex items-center justify-between">
         {/* Logo & Name */}
         <div className="flex items-center gap-2.5">
           <div className="p-1 rounded-xl bg-black border border-white/15 shadow-[0_0_15px_rgba(10,132,255,0.35)]">

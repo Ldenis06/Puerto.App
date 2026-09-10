@@ -1,17 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
-import { NotebookNote } from '../types';
+import { NotebookNote, NotebookReaction } from '../types';
 
 const supabaseUrl = 'https://pymciezjcucizinbasas.supabase.co';
 const supabasePublishableKey = 'sb_publishable_QmbZs0vl_paAwA7hL1GpOg_ck7a-pSG';
 
 export const supabase = createClient(supabaseUrl, supabasePublishableKey);
 
-async function ensureAnonymousSession(): Promise<void> {
+async function ensureAnonymousSession(): Promise<string> {
   const { data: sessionData } = await supabase.auth.getSession();
-  if (!sessionData.session) {
+  if (sessionData.session?.user.id) return sessionData.session.user.id;
+  {
     const { error } = await supabase.auth.signInAnonymously();
     if (error) throw new Error('No se pudo conectar con la libreta. Intentá nuevamente.');
   }
+  const { data: nextSession } = await supabase.auth.getSession();
+  if (!nextSession.session?.user.id) throw new Error('No se pudo identificar la sesión.');
+  return nextSession.session.user.id;
 }
 
 export async function getNotebookNotes(): Promise<NotebookNote[]> {
@@ -26,6 +30,24 @@ export async function publishNotebookNote(body: string, password: string): Promi
   const { data, error } = await supabase.functions.invoke<NotebookNote[]>('publish-notebook-note', { body: { body, password } });
   if (error || !data?.[0]) throw new Error('No se pudo publicar la nota. Revisá la contraseña e intentá nuevamente.');
   return data[0];
+}
+
+export async function getNotebookReactions(): Promise<NotebookReaction[]> {
+  await ensureAnonymousSession();
+  const { data, error } = await supabase.from('libretas_reactions').select('note_id, user_id, emoji');
+  if (error) throw new Error('No se pudieron cargar las reacciones.');
+  return (data || []) as NotebookReaction[];
+}
+
+export async function getNotebookSessionUserId(): Promise<string> {
+  return ensureAnonymousSession();
+}
+
+export async function toggleNotebookReaction(noteId: string, emoji: NotebookReaction['emoji']): Promise<{ active: boolean }> {
+  await ensureAnonymousSession();
+  const { data, error } = await supabase.functions.invoke<{ active: boolean }>('toggle-notebook-reaction', { body: { noteId, emoji } });
+  if (error || !data) throw new Error('No se pudo guardar la reacción.');
+  return data;
 }
 
 export type Recommendation = {

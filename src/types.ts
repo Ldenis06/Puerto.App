@@ -39,6 +39,12 @@ export interface NotebookNote {
   created_at: string;
 }
 
+export interface NotebookReaction {
+  note_id: string;
+  user_id: string;
+  emoji: '👍' | '😂' | '❤️' | '🔥';
+}
+
 export type RouletteMode = 'pairs' | 'trios' | 'solo';
 
 export interface RouletteTeam {

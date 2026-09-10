@@ -228,7 +228,7 @@ export default function App() {
   };
 
   // Handlers for users update
-  const handleUpdateUser = (updatedUser: User) => {
+  const handleUpdateUser = async (updatedUser: User): Promise<boolean> => {
     const nextUsers = users.map((u) => (u.id === updatedUser.id ? updatedUser : u));
     setUsers(nextUsers);
     saveStoredUsers(nextUsers);
@@ -237,8 +237,12 @@ export default function App() {
     // reach every phone. A failed write is surfaced instead of silently
     // appearing saved only on this device.
     if (firebaseAuth.currentUser?.email) {
-      void setDoc(doc(firestore, 'members', updatedUser.id), updatedUser)
-        .catch(() => setSyncError('El cambio no se guardó en la nube. Verificá que ingresaste como Denis y reintentá.'));
+      try {
+        await setDoc(doc(firestore, 'members', updatedUser.id), updatedUser);
+      } catch {
+        setSyncError('No se pudo guardar la asignación. Ingresá con la cuenta administradora denislautaro6@gmail.com y reintentá.');
+        return false;
+      }
     }
 
     if (user?.id === updatedUser.id && firebaseAuth.currentUser?.email) {
@@ -257,22 +261,23 @@ export default function App() {
     if (inspectedMember?.id === updatedUser.id) {
       setInspectedMember(updatedUser);
     }
+    return true;
   };
 
   // Federated account linking
-  const handleLinkFederatedAuth = (userId: string, provider: 'google' | 'apple', email: string) => {
+  const handleLinkFederatedAuth = async (userId: string, provider: 'google' | 'apple', email: string): Promise<boolean> => {
     const cleanEmail = email.trim().toLowerCase();
     if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) {
       setSyncError('Ingresá un correo electrónico válido.');
-      return;
+      return false;
     }
-    const linkedToAnotherMember = users.find((member) => member.id !== userId && member.linkedAuth?.accountEmail.toLowerCase() === cleanEmail);
+    const linkedToAnotherMember = users.find((member) => member.id !== userId && member.linkedAuth?.accountEmail?.toLowerCase() === cleanEmail);
     if (linkedToAnotherMember) {
       setSyncError(`Ese correo ya está asignado a ${linkedToAnotherMember.name}.`);
-      return;
+      return false;
     }
     const target = users.find((u) => u.id === userId);
-    if (!target) return;
+    if (!target) return false;
 
     const updated: User = {
       ...target,
@@ -282,7 +287,7 @@ export default function App() {
         linkedAt: new Date().toISOString(),
       },
     };
-    handleUpdateUser(updated);
+    return handleUpdateUser(updated);
   };
 
   // Unlink federated account (Admin Denis only)

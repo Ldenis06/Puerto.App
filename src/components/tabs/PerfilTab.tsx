@@ -20,7 +20,7 @@ interface Props {
   users: User[];
   onUpdateUser: (updatedUser: User) => void;
   onUnlinkAuth: (targetUserId: string) => void;
-  onLinkAuth?: (targetUserId: string, email: string) => void;
+  onLinkAuth?: (targetUserId: string, email: string) => Promise<boolean>;
 }
 
 export const PerfilTab: React.FC<Props> = ({
@@ -108,7 +108,7 @@ export const PerfilTab: React.FC<Props> = ({
     setAssignmentError(null);
   };
 
-  const saveAssignment = (event: React.FormEvent) => {
+  const saveAssignment = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!assignmentMember || !onLinkAuth) return;
     const email = assignmentEmail.trim().toLowerCase();
@@ -116,12 +116,16 @@ export const PerfilTab: React.FC<Props> = ({
       setAssignmentError('Ingresá un correo válido.');
       return;
     }
-    const takenBy = users.find((member) => member.id !== assignmentMember.id && member.linkedAuth?.accountEmail.toLowerCase() === email);
+    const takenBy = users.find((member) => member.id !== assignmentMember.id && member.linkedAuth?.accountEmail?.toLowerCase() === email);
     if (takenBy) {
       setAssignmentError(`Ese correo ya está asignado a ${takenBy.name}.`);
       return;
     }
-    onLinkAuth(assignmentMember.id, email);
+    const saved = await onLinkAuth(assignmentMember.id, email);
+    if (!saved) {
+      setAssignmentError('No se pudo guardar. Verificá que ingresaste con la cuenta administradora Denis y reintentá.');
+      return;
+    }
     setAdminStatusFeedback(`${assignmentMember.name} quedó vinculado a ${email}.`);
     setAssignmentMember(null);
   };

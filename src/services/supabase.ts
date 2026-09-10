@@ -6,6 +6,8 @@ const supabasePublishableKey = 'sb_publishable_QmbZs0vl_paAwA7hL1GpOg_ck7a-pSG';
 
 export const supabase = createClient(supabaseUrl, supabasePublishableKey);
 
+export type SharedProfileAvatar = { user_id: string; avatar_data: string };
+
 async function ensureAnonymousSession(): Promise<string> {
   const { data: sessionData } = await supabase.auth.getSession();
   if (sessionData.session?.user.id) return sessionData.session.user.id;
@@ -16,6 +18,21 @@ async function ensureAnonymousSession(): Promise<string> {
   const { data: nextSession } = await supabase.auth.getSession();
   if (!nextSession.session?.user.id) throw new Error('No se pudo identificar la sesión.');
   return nextSession.session.user.id;
+}
+
+export async function getSharedProfileAvatars(): Promise<SharedProfileAvatar[]> {
+  await ensureAnonymousSession();
+  const { data, error } = await supabase.from('profile_avatars').select('user_id, avatar_data');
+  if (error) throw new Error('No se pudieron cargar las fotos compartidas.');
+  return (data || []) as SharedProfileAvatar[];
+}
+
+export async function saveSharedProfileAvatar(userId: string, avatarData: string, password?: string): Promise<void> {
+  await ensureAnonymousSession();
+  const { data, error } = await supabase.functions.invoke<{ saved: boolean }>('save-profile-avatar', {
+    body: { userId, avatarData, password },
+  });
+  if (error || !data?.saved) throw new Error('No se pudo sincronizar la foto. Intentá nuevamente.');
 }
 
 export async function getNotebookNotes(): Promise<NotebookNote[]> {

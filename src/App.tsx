@@ -29,6 +29,7 @@ import { NameLoginGate } from './components/NameLoginGate';
 import { MemberProfileModal } from './components/MemberProfileModal';
 import { NotificationsModal } from './components/NotificationsModal';
 import { SplashScreen } from './components/SplashScreen';
+import { getSharedProfileAvatars, saveSharedProfileAvatar } from './services/supabase';
 import confetti from 'canvas-confetti';
 
 const DENIS_PASSWORD_DIGEST = 'a00fce1d15fb5583cdd36bdfc3fd3a2fec84b3d43abeff1bb4f95a1a557f0e51';
@@ -83,6 +84,39 @@ export default function App() {
     document.addEventListener('error', handleImageError, true);
     return () => document.removeEventListener('error', handleImageError, true);
   }, []);
+
+  // Profile photos used to live only in localStorage, so other devices could
+  // only display the default avatar. Pull the group copy at startup, on focus,
+  // and periodically while the app remains open.
+  useEffect(() => {
+    let disposed = false;
+    const syncAvatars = async () => {
+      try {
+        const shared = await getSharedProfileAvatars();
+        if (disposed || shared.length === 0) return;
+        const byUserId = new Map(shared.map((avatar) => [avatar.user_id, avatar.avatar_data]));
+        setUsers((current) => {
+          const next = current.map((member) => {
+            const avatarUrl = byUserId.get(member.id);
+            return avatarUrl ? { ...member, avatarUrl } : member;
+          });
+          saveStoredUsers(next);
+          return next;
+        });
+        setUser((current) => {
+          const avatarUrl = current ? byUserId.get(current.id) : undefined;
+          return current && avatarUrl ? { ...current, avatarUrl } : current;
+        });
+      } catch {
+        // Offline use keeps the last locally saved avatar and retries later.
+      }
+    };
+    const onFocus = () => void syncAvatars();
+    void syncAvatars();
+    window.addEventListener('focus', onFocus);
+    const timer = window.setInterval(() => void syncAvatars(), 30000);
+    return () => { disposed = true; window.removeEventListener('focus', onFocus); window.clearInterval(timer); };
+  }, [user?.id]);
   // Modals & UI states
   const [showSplash, setShowSplash] = useState(true);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
@@ -254,6 +288,13 @@ export default function App() {
     saveStoredExpenses(nextExpenses);
   };
 
+  const handleUpdateAvatar = async (avatarUrl: string, password?: string): Promise<void> => {
+    if (!user) throw new Error('Elegí un perfil antes de cambiar la foto.');
+    const updatedUser = { ...user, avatarUrl };
+    handleUpdateUser(updatedUser);
+    await saveSharedProfileAvatar(updatedUser.id, avatarUrl, password);
+  };
+
   const handleUseProfileChange = () => {
     consumeProfileChangeOnce();
     setUser(null);
@@ -372,6 +413,7 @@ export default function App() {
             <PerfilTab
               currentUser={user}
               onUpdateUser={handleUpdateUser}
+              onUpdateAvatar={handleUpdateAvatar}
               isAdmin={user?.id === 'denis' && user.role === 'admin'}
               onClearAllExpenses={handleClearAllExpenses}
               canChangeProfile={canChangeProfileOnce()}

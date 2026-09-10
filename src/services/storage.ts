@@ -6,6 +6,7 @@ const EXPENSES_KEY = 'puerto_app_expenses_v1';
 const EXPENSES_RESET_VERSION_KEY = 'puerto_app_expenses_reset_v2';
 const CURRENT_USER_KEY = 'puerto_app_current_user_v1';
 const PROFILE_SELECTION_VERSION_KEY = 'puerto_app_profile_selection_v1';
+const PROFILE_CHANGE_USED_KEY = 'puerto_app_profile_change_used_v1';
 const ROULETTE_KEY = 'puerto_app_roulette_v1';
 const DISMISSED_ALERTS_KEY = 'puerto_app_dismissed_alerts_v1';
 const LOCATION_SHARING_KEY = 'puerto_app_location_sharing_v1';
@@ -67,6 +68,15 @@ export function setCurrentUser(userId: string | null): void {
   } else {
     localStorage.removeItem(CURRENT_USER_KEY);
   }
+}
+
+export function canChangeProfileOnce(): boolean {
+  return localStorage.getItem(PROFILE_CHANGE_USED_KEY) !== 'true';
+}
+
+export function consumeProfileChangeOnce(): void {
+  localStorage.setItem(PROFILE_CHANGE_USED_KEY, 'true');
+  localStorage.removeItem(CURRENT_USER_KEY);
 }
 
 export function isLocationSharingEnabled(userId: string): boolean {

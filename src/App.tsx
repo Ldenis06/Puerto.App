@@ -12,6 +12,8 @@ import {
   saveStoredRoulette,
   saveStoredUsers,
   setCurrentUser,
+  canChangeProfileOnce,
+  consumeProfileChangeOnce,
   isLocationSharingEnabled,
   setLocationSharingEnabled,
 } from './services/storage';
@@ -251,6 +253,11 @@ export default function App() {
     saveStoredExpenses(nextExpenses);
   };
 
+  const handleUseProfileChange = () => {
+    consumeProfileChangeOnce();
+    setUser(null);
+  };
+
   const handleClearAllExpenses = () => {
     if (user?.id !== 'denis' || user.role !== 'admin') return;
     setExpenses([]);
@@ -364,6 +371,8 @@ export default function App() {
               onUpdateUser={handleUpdateUser}
               isAdmin={user?.id === 'denis' && user.role === 'admin'}
               onClearAllExpenses={handleClearAllExpenses}
+              canChangeProfile={canChangeProfileOnce()}
+              onUseProfileChange={handleUseProfileChange}
             />
           )}
         </main>

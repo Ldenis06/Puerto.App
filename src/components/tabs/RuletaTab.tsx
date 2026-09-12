@@ -54,7 +54,7 @@ export const RuletaTab: React.FC<Props> = ({ users, onSaveResult, initialResult 
   };
 
   const spinRoulette = () => {
-    if (activeUsers.length === 0) return;
+    if (mode !== 'yesno' && activeUsers.length === 0) return;
     setIsSpinning(true);
     setResult(null);
 
@@ -66,8 +66,10 @@ export const RuletaTab: React.FC<Props> = ({ users, onSaveResult, initialResult 
     // Rapid name flashing animation
     let counter = 0;
     const interval = setInterval(() => {
-      const randomUser = activeUsers[Math.floor(Math.random() * activeUsers.length)];
-      setActiveHighlightName(randomUser.name);
+      const candidate = mode === 'yesno'
+        ? (Math.random() < 0.5 ? 'Sí' : 'No')
+        : activeUsers[Math.floor(Math.random() * activeUsers.length)]?.name || '';
+      setActiveHighlightName(candidate);
       counter++;
       if (counter > 25) {
         clearInterval(interval);
@@ -79,8 +81,11 @@ export const RuletaTab: React.FC<Props> = ({ users, onSaveResult, initialResult 
       const shuffled = shuffleArray(activeUsers);
 
       let teams: RouletteTeam[] = [];
+      let answer: 'Sí' | 'No' | undefined;
 
-      if (mode === 'solo') {
+      if (mode === 'yesno') {
+        answer = Math.random() < 0.5 ? 'Sí' : 'No';
+      } else if (mode === 'solo') {
         // Individual selection: 1 lucky chosen member or ranked order
         const winner = shuffled[0];
         teams = [
@@ -199,6 +204,7 @@ export const RuletaTab: React.FC<Props> = ({ users, onSaveResult, initialResult 
         mode,
         date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         teams,
+        answer,
       };
 
       setResult(newResult);
@@ -219,6 +225,12 @@ export const RuletaTab: React.FC<Props> = ({ users, onSaveResult, initialResult 
 
   const copyResults = () => {
     if (!result) return;
+    if (result.mode === 'yesno') {
+      navigator.clipboard.writeText(`🎲 *RULETA PUERTO APP*\nRespuesta: *${result.answer}*`);
+      setCopiedNotification(true);
+      setTimeout(() => setCopiedNotification(false), 2000);
+      return;
+    }
     let text = `🎲 *SORTEO PUERTO APP (${result.mode.toUpperCase()})* - ${result.date}\n`;
     result.teams.forEach((t) => {
       const names = t.members
@@ -243,19 +255,19 @@ export const RuletaTab: React.FC<Props> = ({ users, onSaveResult, initialResult 
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Dices className="w-5 h-5 text-[#0A84FF]" />
-            <span>Ruleta de Equipos</span>
+            <span>{mode === 'yesno' ? 'Ruleta Sí o No' : 'Ruleta de Equipos'}</span>
           </h2>
           <p className="text-xs text-zinc-400 mt-0.5">
-            Sorteo balanceado: 3 vs 3 (o 2 vs 3 con suplente subrayado si son 5 presentes)
+            {mode === 'yesno' ? 'Girarla para obtener una respuesta aleatoria.' : 'Sorteo balanceado: 3 vs 3 (o 2 vs 3 con suplente subrayado si son 5 presentes)'}
           </p>
         </div>
         <div className="px-2.5 py-1 rounded-full bg-[#0A84FF]/15 border border-[#0A84FF]/30 text-xs font-semibold text-[#5AC8FA]">
-          {activeUsers.length} presentes
+          {mode === 'yesno' ? '2 opciones' : `${activeUsers.length} presentes`}
         </div>
       </div>
 
       {/* Mode Selector Segmented Control (iOS style) */}
-      <div className="p-1 rounded-2xl bg-zinc-900/80 border border-white/10 flex items-center">
+      <div className="grid grid-cols-2 gap-1 rounded-2xl border border-white/10 bg-zinc-900/80 p-1 sm:grid-cols-4">
         <button
           id="mode-btn-pairs"
           type="button"
@@ -292,10 +304,22 @@ export const RuletaTab: React.FC<Props> = ({ users, onSaveResult, initialResult 
         >
           1 Integrante
         </button>
+        <button
+          id="mode-btn-yesno"
+          type="button"
+          onClick={() => setMode('yesno')}
+          className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
+            mode === 'yesno'
+              ? 'bg-[#0A84FF] text-white shadow-[0_2px_10px_rgba(10,132,255,0.4)]'
+              : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          Sí o No
+        </button>
       </div>
 
       {/* Control de Presentes (Toggles) */}
-      <div className="p-4 rounded-[26px] bg-white/[0.04] border border-white/10 backdrop-blur-xl">
+      {mode !== 'yesno' && <div className="p-4 rounded-[26px] bg-white/[0.04] border border-white/10 backdrop-blur-xl">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-300 uppercase tracking-wider">
             <Users className="w-3.5 h-3.5 text-[#0A84FF]" />
@@ -356,7 +380,7 @@ export const RuletaTab: React.FC<Props> = ({ users, onSaveResult, initialResult 
             );
           })}
         </div>
-      </div>
+      </div>}
 
       {/* Visual Spinning Wheel & Action Button */}
       <div className="p-6 rounded-[26px] bg-gradient-to-b from-white/[0.06] to-black/60 border border-white/10 text-center relative overflow-hidden">
@@ -396,23 +420,23 @@ export const RuletaTab: React.FC<Props> = ({ users, onSaveResult, initialResult 
           id="btn-spin-roulette"
           type="button"
           onClick={spinRoulette}
-          disabled={isSpinning || activeUsers.length === 0}
+          disabled={isSpinning || (mode !== 'yesno' && activeUsers.length === 0)}
           className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-[#0A84FF] to-[#5AC8FA] hover:opacity-95 active:scale-[0.98] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(10,132,255,0.5)] transition disabled:opacity-50 disabled:pointer-events-none"
         >
           {isSpinning ? (
             <>
               <RotateCcw className="w-4 h-4 animate-spin" />
-              <span>Mezclando integrantes...</span>
+              <span>{mode === 'yesno' ? 'Consultando la ruleta...' : 'Mezclando integrantes...'}</span>
             </>
           ) : (
             <>
               <Sparkles className="w-4 h-4" />
-              <span>GIRAR RULETA ({activeUsers.length} EN JUEGO)</span>
+              <span>{mode === 'yesno' ? 'GIRAR RULETA (SÍ O NO)' : `GIRAR RULETA (${activeUsers.length} EN JUEGO)`}</span>
             </>
           )}
         </button>
 
-        {activeUsers.length === 0 && (
+        {mode !== 'yesno' && activeUsers.length === 0 && (
           <p className="text-xs text-[#FF375F] mt-2">
             Seleccioná al menos un integrante presente para girar.
           </p>
@@ -427,7 +451,7 @@ export const RuletaTab: React.FC<Props> = ({ users, onSaveResult, initialResult 
               <span className="text-[10px] text-[#5AC8FA] font-black uppercase tracking-widest bg-[#0A84FF]/20 px-2 py-0.5 rounded-md">
                 Resultado Oficial • {result.date}
               </span>
-              <h3 className="text-base font-extrabold text-white mt-1">Equipos Formados</h3>
+              <h3 className="text-base font-extrabold text-white mt-1">{result.mode === 'yesno' ? 'La respuesta es...' : 'Equipos Formados'}</h3>
             </div>
             <button
               id="btn-copy-teams"
@@ -440,7 +464,7 @@ export const RuletaTab: React.FC<Props> = ({ users, onSaveResult, initialResult 
             </button>
           </div>
 
-          <div className="space-y-3">
+          {result.mode === 'yesno' ? <div className={`rounded-[22px] border p-7 text-center ${result.answer === 'Sí' ? 'border-emerald-400/45 bg-emerald-500/10' : 'border-rose-400/45 bg-rose-500/10'}`}><p className="text-xs font-bold uppercase tracking-[0.24em] text-zinc-300">Respuesta de la ruleta</p><p className={`mt-2 text-6xl font-black ${result.answer === 'Sí' ? 'text-emerald-300' : 'text-rose-300'}`}>{result.answer}</p></div> : <><div className="space-y-3">
             {result.teams.map((team, idx) => (
               <div
                 key={idx}
@@ -511,7 +535,7 @@ export const RuletaTab: React.FC<Props> = ({ users, onSaveResult, initialResult 
 
           <p className="text-[11px] text-zinc-500 text-center mt-4">
             Balanceado con algoritmo Fisher-Yates: 2 equipos oficiales con suplente rotativo subrayado.
-          </p>
+          </p></>}
         </div>
       )}
     </div>

@@ -29,7 +29,7 @@ import { NameLoginGate } from './components/NameLoginGate';
 import { MemberProfileModal } from './components/MemberProfileModal';
 import { NotificationsModal } from './components/NotificationsModal';
 import { SplashScreen } from './components/SplashScreen';
-import { getSharedProfileAvatars, saveSharedProfileAvatar } from './services/supabase';
+import { getSharedProfileAvatars, getSharedProfileDescriptions, saveSharedProfileAvatar, saveSharedProfileDescription } from './services/supabase';
 import confetti from 'canvas-confetti';
 
 const DENIS_PASSWORD_DIGEST = 'a00fce1d15fb5583cdd36bdfc3fd3a2fec84b3d43abeff1bb4f95a1a557f0e51';
@@ -115,6 +115,36 @@ export default function App() {
     void syncAvatars();
     window.addEventListener('focus', onFocus);
     const timer = window.setInterval(() => void syncAvatars(), 30000);
+    return () => { disposed = true; window.removeEventListener('focus', onFocus); window.clearInterval(timer); };
+  }, [user?.id]);
+
+  useEffect(() => {
+    let disposed = false;
+    const syncDescriptions = async () => {
+      try {
+        const shared = await getSharedProfileDescriptions();
+        if (disposed || shared.length === 0) return;
+        const byUserId = new Map(shared.map((item) => [item.user_id, item.description]));
+        setUsers((current) => {
+          const next = current.map((member) => {
+            const aiDescription = byUserId.get(member.id);
+            return aiDescription ? { ...member, aiDescription } : member;
+          });
+          saveStoredUsers(next);
+          return next;
+        });
+        setUser((current) => {
+          const aiDescription = current ? byUserId.get(current.id) : undefined;
+          return current && aiDescription ? { ...current, aiDescription } : current;
+        });
+      } catch {
+        // Offline use preserves descriptions already saved on this device.
+      }
+    };
+    const onFocus = () => void syncDescriptions();
+    void syncDescriptions();
+    window.addEventListener('focus', onFocus);
+    const timer = window.setInterval(() => void syncDescriptions(), 30000);
     return () => { disposed = true; window.removeEventListener('focus', onFocus); window.clearInterval(timer); };
   }, [user?.id]);
   // Modals & UI states
@@ -295,6 +325,14 @@ export default function App() {
     await saveSharedProfileAvatar(updatedUser.id, avatarUrl, password);
   };
 
+  const handleUpdateAiDescription = async (userId: string, aiDescription: string, password: string): Promise<void> => {
+    const member = users.find((item) => item.id === userId);
+    if (!member) throw new Error('No se encontró el perfil seleccionado.');
+    const updatedUser = { ...member, aiDescription };
+    await saveSharedProfileDescription(userId, aiDescription, password);
+    handleUpdateUser(updatedUser);
+  };
+
   const handleUseProfileChange = () => {
     consumeProfileChangeOnce();
     setUser(null);
@@ -412,8 +450,10 @@ export default function App() {
           {activeTab === 'perfil' && (
             <PerfilTab
               currentUser={user}
+              users={users}
               onUpdateUser={handleUpdateUser}
               onUpdateAvatar={handleUpdateAvatar}
+              onUpdateAiDescription={handleUpdateAiDescription}
               isAdmin={user?.id === 'denis' && user.role === 'admin'}
               onClearAllExpenses={handleClearAllExpenses}
               canChangeProfile={canChangeProfileOnce()}

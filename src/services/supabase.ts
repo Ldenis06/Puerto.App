@@ -7,6 +7,7 @@ const supabasePublishableKey = 'sb_publishable_QmbZs0vl_paAwA7hL1GpOg_ck7a-pSG';
 export const supabase = createClient(supabaseUrl, supabasePublishableKey);
 
 export type SharedProfileAvatar = { user_id: string; avatar_data: string };
+export type SharedProfileDescription = { user_id: string; description: string };
 
 async function ensureAnonymousSession(): Promise<string> {
   const { data: sessionData } = await supabase.auth.getSession();
@@ -33,6 +34,21 @@ export async function saveSharedProfileAvatar(userId: string, avatarData: string
     body: { userId, avatarData, password },
   });
   if (error || !data?.saved) throw new Error('No se pudo sincronizar la foto. Intentá nuevamente.');
+}
+
+export async function getSharedProfileDescriptions(): Promise<SharedProfileDescription[]> {
+  await ensureAnonymousSession();
+  const { data, error } = await supabase.from('profile_descriptions').select('user_id, description');
+  if (error) throw new Error('No se pudieron cargar las descripciones compartidas.');
+  return (data || []) as SharedProfileDescription[];
+}
+
+export async function saveSharedProfileDescription(userId: string, description: string, password: string): Promise<void> {
+  await ensureAnonymousSession();
+  const { data, error } = await supabase.functions.invoke<{ saved: boolean }>('save-profile-description', {
+    body: { userId, description, password },
+  });
+  if (error || !data?.saved) throw new Error('No se pudo sincronizar la descripción. Intentá nuevamente.');
 }
 
 export async function getNotebookNotes(): Promise<NotebookNote[]> {

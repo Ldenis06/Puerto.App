@@ -45,7 +45,7 @@ export interface NotebookReaction {
   emoji: '👍' | '😂' | '❤️' | '🔥';
 }
 
-export type RouletteMode = 'pairs' | 'trios' | 'solo';
+export type RouletteMode = 'pairs' | 'trios' | 'solo' | 'yesno';
 
 export interface RouletteTeam {
   name: string;
@@ -58,6 +58,7 @@ export interface RouletteResult {
   mode: RouletteMode;
   date: string;
   teams: RouletteTeam[];
+  answer?: 'Sí' | 'No';
 }
 
 export interface ProximityAlert {

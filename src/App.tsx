@@ -20,6 +20,7 @@ import {
 import { Header } from './components/Header';
 import { TabBar, TabType } from './components/TabBar';
 import { RuletaTab } from './components/tabs/RuletaTab';
+import { ImpostorTab } from './components/tabs/ImpostorTab';
 import { MapaTab } from './components/tabs/MapaTab';
 import { GastosTab } from './components/tabs/GastosTab';
 import { PerfilTab } from './components/tabs/PerfilTab';
@@ -421,6 +422,8 @@ export default function App() {
               initialResult={rouletteHistory}
             />
           )}
+
+          {activeTab === 'impostor' && <ImpostorTab users={users} />}
 
           {activeTab === 'mapa' && (
             <MapaTab

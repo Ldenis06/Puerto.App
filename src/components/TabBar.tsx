@@ -1,7 +1,7 @@
 import React from 'react';
-import { Dices, MapPin, NotebookText, Receipt, Sparkles, User } from 'lucide-react';
+import { Dices, MapPin, NotebookText, Receipt, ShieldAlert, Sparkles, User } from 'lucide-react';
 
-export type TabType = 'ruleta' | 'mapa' | 'salidas' | 'libretas' | 'gastos' | 'perfil';
+export type TabType = 'ruleta' | 'impostor' | 'mapa' | 'salidas' | 'libretas' | 'gastos' | 'perfil';
 
 interface Props {
   activeTab: TabType;
@@ -12,6 +12,7 @@ interface Props {
 export const TabBar: React.FC<Props> = ({ activeTab, onChangeTab, pendingDebtCount = 0 }) => {
   const tabs = [
     { id: 'ruleta' as TabType, label: 'Ruleta', icon: Dices },
+    { id: 'impostor' as TabType, label: 'Impostor', icon: ShieldAlert },
     { id: 'mapa' as TabType, label: 'Mapa', icon: MapPin },
     { id: 'salidas' as TabType, label: 'Salidas', icon: Sparkles },
     { id: 'libretas' as TabType, label: 'Libretas', icon: NotebookText },
@@ -21,7 +22,7 @@ export const TabBar: React.FC<Props> = ({ activeTab, onChangeTab, pendingDebtCou
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-black/90 backdrop-blur-2xl border-t border-white/10 pb-[env(safe-area-inset-bottom,16px)]">
-      <div className="max-w-md mx-auto px-6 py-2 flex items-center justify-between">
+      <div className="mx-auto grid max-w-xl grid-cols-7 gap-0.5 px-1 py-2">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -32,13 +33,13 @@ export const TabBar: React.FC<Props> = ({ activeTab, onChangeTab, pendingDebtCou
               id={`tab-btn-${tab.id}`}
               type="button"
               onClick={() => onChangeTab(tab.id)}
-              className={`relative flex flex-col items-center justify-center py-1 px-3 min-w-[64px] transition-all duration-200 active:scale-95 ${
+              className={`relative flex min-w-0 flex-col items-center justify-center px-0 py-1 transition-all duration-200 active:scale-95 ${
                 isActive ? 'text-[#0A84FF]' : 'text-zinc-500 hover:text-zinc-300'
               }`}
             >
               <div className="relative">
                 <Icon
-                  className={`w-6 h-6 transition-transform duration-200 ${
+                  className={`h-5 w-5 transition-transform duration-200 sm:h-6 sm:w-6 ${
                     isActive ? 'scale-110 stroke-[2.4px]' : 'scale-100 stroke-[1.8px]'
                   }`}
                 />
@@ -49,7 +50,7 @@ export const TabBar: React.FC<Props> = ({ activeTab, onChangeTab, pendingDebtCou
                 ) : null}
               </div>
               <span
-                className={`text-[11px] mt-1 font-medium tracking-tight transition-colors duration-200 ${
+                className={`mt-1 text-[9px] font-medium tracking-tight transition-colors duration-200 sm:text-[11px] ${
                   isActive ? 'font-bold text-[#0A84FF]' : 'text-zinc-500'
                 }`}
               >

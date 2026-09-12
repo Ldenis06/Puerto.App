@@ -3,7 +3,7 @@ import { BookOpenText, Check, Clipboard, LoaderCircle, Send, Trash2 } from 'luci
 import { NotebookNote, NotebookReaction } from '../../types';
 import { deleteNotebookNote, getNotebookNotes, getNotebookReactions, getNotebookSessionUserId, publishNotebookNote, toggleNotebookReaction } from '../../services/supabase';
 
-interface Props { isDenis: boolean; }
+interface Props { isDenis: boolean; isUnavailable?: boolean; }
 
 const PROFILE_TEMPLATE = `Usuario:
 Cuenta:
@@ -13,7 +13,7 @@ Seguidos:
 
 Detalles:`;
 
-export const LibretasTab: React.FC<Props> = ({ isDenis }) => {
+export const LibretasTab: React.FC<Props> = ({ isDenis, isUnavailable = false }) => {
   const [notes, setNotes] = useState<NotebookNote[]>([]);
   const [reactions, setReactions] = useState<NotebookReaction[]>([]);
   const [sessionUserId, setSessionUserId] = useState<string>('');
@@ -35,10 +35,14 @@ export const LibretasTab: React.FC<Props> = ({ isDenis }) => {
   };
 
   useEffect(() => {
+    if (isUnavailable) {
+      setLoading(false);
+      return;
+    }
     void refresh();
     const timer = window.setInterval(() => void refresh(), 15000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [isUnavailable]);
 
   const publish = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -84,6 +88,11 @@ export const LibretasTab: React.FC<Props> = ({ isDenis }) => {
       setReactions((current) => current.filter((reaction) => reaction.note_id !== noteId));
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'No se pudo borrar la publicación.'); }
   };
+
+  if (isUnavailable) return <div className="space-y-4 pb-24 animate-fadeIn">
+    <section className="rounded-[26px] border border-white/10 bg-gradient-to-br from-[#0A84FF]/15 to-zinc-950 p-5"><div className="flex items-center gap-3"><div className="rounded-2xl bg-[#0A84FF]/20 p-3 text-[#5AC8FA]"><BookOpenText className="h-6 w-6" /></div><div><h2 className="text-lg font-black text-white">Libretas</h2><p className="text-xs text-zinc-400">Notas y novedades del grupo.</p></div></div></section>
+    <section className="rounded-[26px] border border-amber-400/25 bg-amber-400/5 p-6 text-center"><BookOpenText className="mx-auto mb-3 h-9 w-9 text-amber-200" /><h3 className="text-sm font-bold text-white">Función no habilitada</h3><p className="mt-2 text-xs leading-relaxed text-zinc-400">Libretas no está habilitada para tu perfil en este momento.</p></section>
+  </div>;
 
   return <div className="space-y-4 pb-24 animate-fadeIn">
     <section className="rounded-[26px] border border-white/10 bg-gradient-to-br from-[#0A84FF]/15 to-zinc-950 p-5">

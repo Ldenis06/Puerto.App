@@ -1,5 +1,24 @@
 @import "tailwindcss";
 
+/* Prevent iOS from rubber-banding the whole PWA sideways. Horizontal scrolling
+   remains available inside purpose-built carousels with overflow-x-auto. */
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+}
+
+html,
+body {
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+}
+
+#root {
+  overflow-x: clip;
+}
+
 /* Keeps the header below a notch or Dynamic Island on iPhone, with 12px on other screens. */
 .safe-area-top {
   padding-top: max(0.75rem, env(safe-area-inset-top, 0px));

@@ -68,9 +68,8 @@ export const MapaTab: React.FC<Props> = ({
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const markersGroupRef = useRef<L.LayerGroup | null>(null);
   const coupleLinesGroupRef = useRef<L.LayerGroup | null>(null);
-  const accuracyCircleRef = useRef<L.Circle | null>(null);
 
-  const [activeLayer, setActiveLayer] = useState<MapLayerType>('dark');
+  const [activeLayer, setActiveLayer] = useState<MapLayerType>('satellite');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [gpsStatusInfo, setGpsStatusInfo] = useState<string | null>(null);
@@ -198,25 +197,6 @@ export const MapaTab: React.FC<Props> = ({
     markersGroup.clearLayers();
     coupleLinesGroup.clearLayers();
 
-    // Accuracy Circle for current user
-    if (accuracyCircleRef.current) {
-      accuracyCircleRef.current.remove();
-      accuracyCircleRef.current = null;
-    }
-
-    if (currentUser?.location?.isActive && gpsAccuracy && gpsAccuracy < 500) {
-      accuracyCircleRef.current = L.circle(
-        [currentUser.location.lat, currentUser.location.lng],
-        {
-          radius: Math.max(gpsAccuracy, 10),
-          color: '#0A84FF',
-          weight: 1,
-          fillColor: '#0A84FF',
-          fillOpacity: 0.12,
-        }
-      ).addTo(mapInstanceRef.current);
-    }
-
     // Draw love connection lines and 50m halos for couples
     couplePairs.forEach((pair) => {
       if (!pair.u1.location || !pair.u2.location) return;
@@ -258,15 +238,13 @@ export const MapaTab: React.FC<Props> = ({
 
       // Custom HTML Marker Pin
       const iconHtml = `
-        <div class="custom-user-marker" style="display:flex; flex-direction:column; align-items:center; cursor:pointer; transform:translate(-50%, -100%);">
+        <div class="custom-user-marker" style="position:relative; display:flex; flex-direction:column; align-items:center; cursor:pointer;">
           ${
             isInCouple
               ? `<div style="position:absolute; top:2px; width:48px; height:48px; border-radius:9999px; background:rgba(255,55,95,0.45); animation:ping 1.5s cubic-bezier(0,0,0.2,1) infinite;"></div>`
-              : isSelf
-              ? `<div style="position:absolute; top:2px; width:48px; height:48px; border-radius:9999px; background:rgba(10,132,255,0.45); animation:pulse 2s infinite;"></div>`
               : ''
           }
-          <div style="position:relative; width:44px; height:44px; border-radius:9999px; padding:2px; ${
+          <div style="position:relative; width:48px; height:48px; border-radius:9999px; padding:2px; ${
             isInCouple
               ? 'background:linear-gradient(135deg, #FF375F, #FF7597); box-shadow:0 0 18px rgba(255,55,95,0.85);'
               : isSelf
@@ -285,7 +263,7 @@ export const MapaTab: React.FC<Props> = ({
             <span style="position:absolute; bottom:0px; right:0px; width:10px; height:10px; border-radius:9999px; background:#30D158; border:2px solid #000;"></span>
           </div>
 
-          <div style="margin-top:3px; padding:2px 8px; border-radius:6px; font-size:10px; font-weight:800; white-space:nowrap; ${
+          <div style="position:absolute; top:52px; left:50%; transform:translateX(-50%); padding:2px 8px; border-radius:6px; font-size:10px; font-weight:800; white-space:nowrap; ${
             isInCouple
               ? 'background:rgba(80,7,36,0.95); border:1px solid #FF375F; color:#FECDD3;'
               : isSelf
@@ -300,8 +278,8 @@ export const MapaTab: React.FC<Props> = ({
       const customIcon = L.divIcon({
         className: 'custom-map-user-pin',
         html: iconHtml,
-        iconSize: [46, 64],
-        iconAnchor: [23, 60],
+        iconSize: [52, 70],
+        iconAnchor: [26, 26],
       });
 
       const marker = L.marker([u.location.lat, u.location.lng], { icon: customIcon });
@@ -689,8 +667,8 @@ export const MapaTab: React.FC<Props> = ({
         {/* Map Legend & Hint Overlay */}
         <div className="absolute bottom-3 left-3 z-[1000] flex flex-col sm:flex-row items-start sm:items-center gap-2 pointer-events-none">
           <div className="px-3 py-1.5 rounded-xl bg-black/85 border border-white/15 backdrop-blur-md text-[10px] text-zinc-300 flex items-center gap-2 shadow-lg">
-            <span className="w-2 h-2 rounded-full bg-[#0A84FF] animate-ping" />
-            <span>Azul = Tu celular</span>
+            <span className="w-2 h-2 rounded-full bg-[#0A84FF]" />
+            <span>Tu foto = tu ubicación</span>
             <span className="text-zinc-500">•</span>
             <span className="text-pink-400">❤️ = Relación amorosa (≤50m)</span>
           </div>

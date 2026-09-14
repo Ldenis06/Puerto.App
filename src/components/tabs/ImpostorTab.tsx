@@ -45,7 +45,8 @@ export const ImpostorTab: React.FC<{ users: User[] }> = ({ users }) => {
     if (selectedPlayers.length < 2) return;
     const players = shuffle<User>(selectedPlayers);
     const count = Math.min(impostorCount, players.length - 1);
-    setRound({ word: FOOTBALLERS[Math.floor(Math.random() * FOOTBALLERS.length)], players, impostorIds: new Set(players.slice(0, count).map((user) => user.id)) });
+    const impostorIds = new Set(shuffle<User>(selectedPlayers).slice(0, count).map((user) => user.id));
+    setRound({ word: FOOTBALLERS[Math.floor(Math.random() * FOOTBALLERS.length)], players, impostorIds });
     setTurn(0);
     setRoleVisible(false);
     setStage('handoff');

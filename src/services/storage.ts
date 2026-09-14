@@ -5,6 +5,7 @@ const USERS_KEY = 'puerto_app_users_v1';
 const EXPENSES_KEY = 'puerto_app_expenses_v1';
 const EXPENSES_RESET_VERSION_KEY = 'puerto_app_expenses_reset_v2';
 const CURRENT_USER_KEY = 'puerto_app_current_user_v1';
+const DENIS_SESSION_KEY = 'puerto_app_denis_session_v1';
 const PROFILE_SELECTION_VERSION_KEY = 'puerto_app_profile_selection_v1';
 const PROFILE_CHANGE_USED_KEY = 'puerto_app_profile_change_used_v1';
 const ROULETTE_KEY = 'puerto_app_roulette_v1';
@@ -55,6 +56,10 @@ export function getCurrentUser(): User | null {
     if (!id) {
       return null;
     }
+    if (id === 'denis' && !localStorage.getItem(DENIS_SESSION_KEY)) {
+      localStorage.removeItem(CURRENT_USER_KEY);
+      return null;
+    }
     const users = getStoredUsers();
     return users.find((u) => u.id === id) || null;
   } catch {
@@ -67,7 +72,16 @@ export function setCurrentUser(userId: string | null): void {
     localStorage.setItem(CURRENT_USER_KEY, userId);
   } else {
     localStorage.removeItem(CURRENT_USER_KEY);
+    localStorage.removeItem(DENIS_SESSION_KEY);
   }
+}
+
+export function getDenisSession(): string | null {
+  return localStorage.getItem(DENIS_SESSION_KEY);
+}
+
+export function setDenisSession(token: string): void {
+  localStorage.setItem(DENIS_SESSION_KEY, token);
 }
 
 export function canChangeProfileOnce(): boolean {
@@ -77,6 +91,7 @@ export function canChangeProfileOnce(): boolean {
 export function consumeProfileChangeOnce(): void {
   localStorage.setItem(PROFILE_CHANGE_USED_KEY, 'true');
   localStorage.removeItem(CURRENT_USER_KEY);
+  localStorage.removeItem(DENIS_SESSION_KEY);
 }
 
 export function isLocationSharingEnabled(userId: string): boolean {

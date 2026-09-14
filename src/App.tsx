@@ -12,6 +12,7 @@ import {
   saveStoredRoulette,
   saveStoredUsers,
   setCurrentUser,
+  setDenisSession,
   canChangeProfileOnce,
   consumeProfileChangeOnce,
   isLocationSharingEnabled,
@@ -30,16 +31,8 @@ import { NameLoginGate } from './components/NameLoginGate';
 import { MemberProfileModal } from './components/MemberProfileModal';
 import { NotificationsModal } from './components/NotificationsModal';
 import { SplashScreen } from './components/SplashScreen';
-import { getSharedProfileAvatars, getSharedProfileDescriptions, saveSharedProfileAvatar, saveSharedProfileDescription } from './services/supabase';
+import { authenticateDenis, getSharedProfileAvatars, getSharedProfileDescriptions, saveSharedProfileAvatar, saveSharedProfileDescription } from './services/supabase';
 import confetti from 'canvas-confetti';
-
-const DENIS_PASSWORD_DIGEST = 'a00fce1d15fb5583cdd36bdfc3fd3a2fec84b3d43abeff1bb4f95a1a557f0e51';
-
-async function sha256(value: string): Promise<string> {
-  const data = new TextEncoder().encode(value);
-  const digest = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
-}
 
 function localAvatar(name: string, url: string) {
   // Keep real uploaded images (JPEG/PNG/WebP). Earlier app versions stored
@@ -229,7 +222,13 @@ export default function App() {
 
   // Handlers for session
   const handleLogin = async (newUser: User, password?: string): Promise<boolean> => {
-    if (newUser.id === 'denis' && await sha256(password || '') !== DENIS_PASSWORD_DIGEST) return false;
+    if (newUser.id === 'denis') {
+      try {
+        setDenisSession(await authenticateDenis(password || ''));
+      } catch {
+        return false;
+      }
+    }
     const current = users.find((member) => member.id === newUser.id) || newUser;
     setUser(current);
     setCurrentUser(current.id);

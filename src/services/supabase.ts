@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NotebookNote, NotebookReaction } from '../types';
+import { getDenisSession } from './storage';
 
 const supabaseUrl = 'https://pymciezjcucizinbasas.supabase.co';
 const supabasePublishableKey = 'sb_publishable_QmbZs0vl_paAwA7hL1GpOg_ck7a-pSG';
@@ -58,11 +59,20 @@ export async function getNotebookNotes(): Promise<NotebookNote[]> {
   return (data || []) as NotebookNote[];
 }
 
-export async function publishNotebookNote(body: string, password: string): Promise<NotebookNote> {
+export async function publishNotebookNote(body: string): Promise<NotebookNote> {
   await ensureAnonymousSession();
-  const { data, error } = await supabase.functions.invoke<NotebookNote[]>('publish-notebook-note', { body: { body, password } });
-  if (error || !data?.[0]) throw new Error('No se pudo publicar la nota. Revisá la contraseña e intentá nuevamente.');
+  const denisSession = getDenisSession();
+  if (!denisSession) throw new Error('Volvé a ingresar como Denis para publicar.');
+  const { data, error } = await supabase.functions.invoke<NotebookNote[]>('publish-notebook-note', { body: { body }, headers: { 'x-denis-session': denisSession } });
+  if (error || !data?.[0]) throw new Error('No se pudo publicar la nota. Intentá nuevamente.');
   return data[0];
+}
+
+export async function authenticateDenis(password: string): Promise<string> {
+  await ensureAnonymousSession();
+  const { data, error } = await supabase.functions.invoke<{ token: string }>('authenticate-denis', { body: { password } });
+  if (error || !data?.token) throw new Error('La contraseña no es correcta.');
+  return data.token;
 }
 
 export async function deleteNotebookNote(noteId: string, password: string): Promise<void> {

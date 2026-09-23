@@ -75,6 +75,19 @@ export async function authenticateDenis(password: string): Promise<string> {
   return data.token;
 }
 
+/**
+ * Validates the regular member password in an Edge Function. Passwords stay
+ * in the Supabase secret store and are never bundled into the GitHub Pages app.
+ */
+export async function authenticateProfile(userId: string, password: string): Promise<void> {
+  await ensureAnonymousSession();
+  const { data, error } = await supabase.functions.invoke<{ authenticated: boolean }>(
+    'authenticate-profile',
+    { body: { userId, password } },
+  );
+  if (error || !data?.authenticated) throw new Error('La contraseña no es correcta.');
+}
+
 export async function deleteNotebookNote(noteId: string, password: string): Promise<void> {
   await ensureAnonymousSession();
   const { error } = await supabase.functions.invoke('delete-notebook-note', { body: { noteId, password } });

@@ -7,6 +7,7 @@ const EXPENSES_RESET_VERSION_KEY = 'puerto_app_expenses_reset_v2';
 const CURRENT_USER_KEY = 'puerto_app_current_user_v1';
 const DENIS_SESSION_KEY = 'puerto_app_denis_session_v1';
 const PROFILE_SELECTION_VERSION_KEY = 'puerto_app_profile_selection_v1';
+const PROFILE_AUTH_VERSION_KEY = 'puerto_app_profile_auth_v2';
 const PROFILE_CHANGE_USED_KEY = 'puerto_app_profile_change_used_v1';
 const ROULETTE_KEY = 'puerto_app_roulette_v1';
 const DISMISSED_ALERTS_KEY = 'puerto_app_dismissed_alerts_v1';
@@ -46,8 +47,9 @@ export function saveStoredUsers(users: User[]): void {
 
 export function getCurrentUser(): User | null {
   try {
-    // Existing installations must choose a profile once under the new lock.
-    if (localStorage.getItem(PROFILE_SELECTION_VERSION_KEY) !== '1') {
+    // Existing installations must authenticate their selected profile after
+    // the password gate is introduced.
+    if (localStorage.getItem(PROFILE_SELECTION_VERSION_KEY) !== '1' || localStorage.getItem(PROFILE_AUTH_VERSION_KEY) !== '1') {
       localStorage.removeItem(CURRENT_USER_KEY);
       localStorage.setItem(PROFILE_SELECTION_VERSION_KEY, '1');
       return null;
@@ -70,9 +72,12 @@ export function getCurrentUser(): User | null {
 export function setCurrentUser(userId: string | null): void {
   if (userId) {
     localStorage.setItem(CURRENT_USER_KEY, userId);
+    localStorage.setItem(PROFILE_SELECTION_VERSION_KEY, '1');
+    localStorage.setItem(PROFILE_AUTH_VERSION_KEY, '1');
   } else {
     localStorage.removeItem(CURRENT_USER_KEY);
     localStorage.removeItem(DENIS_SESSION_KEY);
+    localStorage.removeItem(PROFILE_AUTH_VERSION_KEY);
   }
 }
 
@@ -92,6 +97,7 @@ export function consumeProfileChangeOnce(): void {
   localStorage.setItem(PROFILE_CHANGE_USED_KEY, 'true');
   localStorage.removeItem(CURRENT_USER_KEY);
   localStorage.removeItem(DENIS_SESSION_KEY);
+  localStorage.removeItem(PROFILE_AUTH_VERSION_KEY);
 }
 
 export function isLocationSharingEnabled(userId: string): boolean {

@@ -31,7 +31,7 @@ import { NameLoginGate } from './components/NameLoginGate';
 import { MemberProfileModal } from './components/MemberProfileModal';
 import { NotificationsModal } from './components/NotificationsModal';
 import { SplashScreen } from './components/SplashScreen';
-import { authenticateDenis, getSharedProfileAvatars, getSharedProfileDescriptions, saveSharedProfileAvatar, saveSharedProfileDescription } from './services/supabase';
+import { authenticateDenis, authenticateProfile, getSharedProfileAvatars, getSharedProfileDescriptions, saveSharedProfileAvatar, saveSharedProfileDescription } from './services/supabase';
 import confetti from 'canvas-confetti';
 
 function localAvatar(name: string, url: string) {
@@ -222,12 +222,14 @@ export default function App() {
 
   // Handlers for session
   const handleLogin = async (newUser: User, password?: string): Promise<boolean> => {
-    if (newUser.id === 'denis') {
-      try {
+    try {
+      if (newUser.id === 'denis') {
         setDenisSession(await authenticateDenis(password || ''));
-      } catch {
-        return false;
+      } else {
+        await authenticateProfile(newUser.id, password || '');
       }
+    } catch {
+      return false;
     }
     const current = users.find((member) => member.id === newUser.id) || newUser;
     setUser(current);
@@ -349,18 +351,18 @@ export default function App() {
     saveStoredRoulette(res);
   };
 
+  // Do not mount the header, navigation, maps, or tab content until a profile
+  // has completed its password check.
+  if (!user) {
+    return showSplash
+      ? <SplashScreen onFinish={finishSplash} />
+      : <NameLoginGate users={users} onLogin={handleLogin} />;
+  }
+
   return (
     <div className="min-h-screen bg-black text-white flex flex-col justify-between selection:bg-[#0A84FF] selection:text-white">
       {/* Splash Screen */}
       {showSplash && <SplashScreen onFinish={finishSplash} />}
-
-      {/* Local profile selection when user is not logged in */}
-      {!user && !showSplash && (
-        <NameLoginGate
-          users={users}
-          onLogin={handleLogin}
-        />
-      )}
 
       {/* Main Container */}
       <div className="w-full flex-1 flex flex-col">

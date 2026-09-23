@@ -12,7 +12,8 @@ export interface User {
   id: string;
   name: string;
   role: Role;
-  pin: string;
+  /** Passwords are intentionally never stored in the public client. */
+  pin?: string;
   birthday: string; // DD/MM
   bio: string;
   aiDescription: string;

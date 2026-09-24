@@ -1,0 +1,2 @@
+[functions.authenticate-profile]
+verify_jwt = false

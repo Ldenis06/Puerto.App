@@ -1,0 +1,103 @@
+import { User } from '../types';
+
+// Default coordinates centered around Puerto Madero (Puente de la Mujer: -34.6083, -58.3644)
+export const INITIAL_USERS: User[] = [
+  {
+    id: 'denis',
+    name: 'Denis',
+    role: 'admin',
+    birthday: '24/08',
+    bio: 'CEO del caos y financista frustrado.',
+    aiDescription: 'CEO del caos y financista frustrado. Se gasta 30k en Clash Royale para perder 5 seguidas, organiza salidas a Puerto Madero con cupones dudosos y devuelve plata con "abrazos y besos".',
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=Denis&backgroundColor=0a84ff',
+    location: {
+      lat: -34.6083,
+      lng: -58.3644,
+      lastUpdated: new Date().toISOString(),
+      isActive: true,
+      label: 'Puente de la Mujer',
+    },
+  },
+  {
+    id: 'maxi',
+    name: 'Maxi',
+    role: 'member',
+    birthday: '29/09',
+    bio: 'Chofer oficial y corresponsal europeo.',
+    aiDescription: 'Chofer oficial, catador de polleras y corresponsal europeo. Presume su PC, cancela planes de CS por July y modera el grupo con abuso de poder eliminando mensajes.',
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=Maxi&backgroundColor=30d158',
+    location: {
+      lat: -34.6081,
+      lng: -58.3642, // ~30m from Denis (triggering proximity alert)
+      lastUpdated: new Date().toISOString(),
+      isActive: true,
+      label: 'Costanera Dársena Sur',
+    },
+  },
+  {
+    id: 'drizza',
+    name: 'Drizza',
+    role: 'member',
+    birthday: '01/11',
+    bio: 'Magnate narco y fiscal de parciales.',
+    aiDescription: 'Magnate narco y fiscal de parciales. Tiene una PC de 2 palos y medio con Telecentro de 2 megas. No juega Fortnite por "juego de nenes" y cena a las doce de la noche.',
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=Drizza&backgroundColor=ff9500',
+    location: {
+      lat: -34.6110,
+      lng: -58.3620,
+      lastUpdated: new Date().toISOString(),
+      isActive: false,
+      label: 'Dique 2',
+    },
+  },
+  {
+    id: 'castro',
+    name: 'Castro',
+    role: 'member',
+    birthday: '13/07',
+    bio: 'Delay infinito e influencer zen.',
+    aiDescription: 'Delay infinito, pirómano de hardware e influencer zen. Hizo explotar la térmica de su casa cambiando el voltaje y mete cadenas de agradecimiento en momentos de guerra civil.',
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=Castro&backgroundColor=bf5af2',
+    location: {
+      lat: -34.6050,
+      lng: -58.3660,
+      lastUpdated: new Date().toISOString(),
+      isActive: false,
+      label: 'Fragata Sarmiento',
+    },
+  },
+  {
+    id: 'alan',
+    name: 'Alan',
+    role: 'member',
+    birthday: '16/07',
+    bio: 'Filósofo del doble sentido y bosterito crónico.',
+    aiDescription: 'Filósofo del doble sentido y bosterito crónico. Vive rindiendo parciales, manda stickers cuestionables y le presta 40 lucas a Denis cuando el banco lo apura.',
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=Alan&backgroundColor=ffd60a',
+    location: {
+      lat: -34.6095,
+      lng: -58.3670,
+      lastUpdated: new Date().toISOString(),
+      isActive: false,
+      label: 'Plaza de Mayo',
+    },
+  },
+  {
+    id: 'alca',
+    name: 'Alca',
+    role: 'member',
+    birthday: '26/12',
+    bio: 'Dealer de golosinas y 10k copas Royale.',
+    aiDescription: 'Dealer de golosinas y periodista clandestino. 10.000 copas en Clash Royale sin pagar un peso. No regala ni un caramelo del kiosco de su viejo y maneja data de F1 y fútbol.',
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=Alca&backgroundColor=ff375f',
+    location: {
+      lat: -34.6065,
+      lng: -58.3615,
+      lastUpdated: new Date().toISOString(),
+      isActive: false,
+      label: 'Yacht Club Puerto Madero',
+    },
+  },
+];
+
+export const INITIAL_EXPENSES = [];

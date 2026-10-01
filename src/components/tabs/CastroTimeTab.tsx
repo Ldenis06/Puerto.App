@@ -4,8 +4,7 @@ import { Sparkles, Timer, TrendingUp, Users } from 'lucide-react';
 // Both values use the same public starting point so every device displays the
 // same count, even after the page is reloaded.
 const STARTED_AT = new Date('2026-10-01T00:00:00-03:00').getTime();
-const JULIAS_START = 200;
-const JULIAS_INTERVAL_MS = 3 * 1000;
+const JULIAS_START = 200_000;
 const FRIENDS_START = 10;
 const FRIENDS_INTERVAL_MS = 15 * 24 * 60 * 60 * 1000;
 
@@ -26,7 +25,7 @@ export const CastroTimeTab: React.FC = () => {
     const completedIntervals = Math.floor(elapsed / FRIENDS_INTERVAL_MS);
 
     return {
-      julias: JULIAS_START * 2 ** Math.floor(elapsed / JULIAS_INTERVAL_MS),
+      julias: JULIAS_START + Math.floor(elapsed / 1000),
       friends: FRIENDS_START + completedIntervals,
     };
   }, [now]);

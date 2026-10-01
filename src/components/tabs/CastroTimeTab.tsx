@@ -5,6 +5,7 @@ import { Sparkles, Timer, TrendingUp, Users } from 'lucide-react';
 // same count, even after the page is reloaded.
 const STARTED_AT = new Date('2026-10-01T00:00:00-03:00').getTime();
 const JULIAS_START = 200;
+const JULIAS_INTERVAL_MS = 3 * 1000;
 const FRIENDS_START = 10;
 const FRIENDS_INTERVAL_MS = 15 * 24 * 60 * 60 * 1000;
 
@@ -20,15 +21,13 @@ export const CastroTimeTab: React.FC = () => {
     return () => window.clearInterval(timer);
   }, []);
 
-  const { julias, friends, nextFriendsIn } = useMemo(() => {
+  const { julias, friends } = useMemo(() => {
     const elapsed = Math.max(0, now - STARTED_AT);
     const completedIntervals = Math.floor(elapsed / FRIENDS_INTERVAL_MS);
-    const remaining = FRIENDS_INTERVAL_MS - (elapsed % FRIENDS_INTERVAL_MS);
 
     return {
-      julias: JULIAS_START + Math.floor(elapsed / 1000) * 2,
+      julias: JULIAS_START * 2 ** Math.floor(elapsed / JULIAS_INTERVAL_MS),
       friends: FRIENDS_START + completedIntervals,
-      nextFriendsIn: Math.ceil(remaining / (24 * 60 * 60 * 1000)),
     };
   }, [now]);
 
@@ -56,7 +55,6 @@ export const CastroTimeTab: React.FC = () => {
           <TrendingUp className="h-5 w-5 text-[#FF375F]" />
         </div>
         <p className="mt-4 tabular-nums text-5xl font-black tracking-tighter text-white" aria-live="polite">{formatCount(julias)}</p>
-        <p className="mt-2 text-xs text-zinc-400">Arrancó en 200 y suma <strong className="text-[#FFB3C1]">2 por segundo</strong>.</p>
       </article>
 
       <article className="overflow-hidden rounded-[28px] border border-[#5AC8FA]/35 bg-gradient-to-br from-[#092D45] via-[#0A1823] to-zinc-950 p-5 shadow-[0_12px_32px_rgba(90,200,250,0.14)]">
@@ -68,7 +66,6 @@ export const CastroTimeTab: React.FC = () => {
           <Timer className="h-5 w-5 text-[#5AC8FA]" />
         </div>
         <p className="mt-4 tabular-nums text-5xl font-black tracking-tighter text-white" aria-live="polite">{formatCount(friends)}</p>
-        <p className="mt-2 text-xs text-zinc-400">Arrancó en 10 y suma <strong className="text-[#B4E6FF]">1 cada 15 días</strong>. Próximo aumento en {nextFriendsIn} día{nextFriendsIn === 1 ? '' : 's'}.</p>
       </article>
     </section>
   );

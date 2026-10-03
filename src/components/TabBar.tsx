@@ -22,7 +22,7 @@ export const TabBar: React.FC<Props> = ({ activeTab, onChangeTab, pendingDebtCou
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-black/90 backdrop-blur-2xl border-t border-white/10 pb-[env(safe-area-inset-bottom,16px)]">
-      <div className="mx-auto grid max-w-xl grid-cols-8 gap-0.5 px-1 py-2">
+      <div className="mx-auto grid max-w-xl grid-cols-7 gap-0.5 px-1 py-2">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;

@@ -26,7 +26,6 @@ import { MapaTab } from './components/tabs/MapaTab';
 import { GastosTab } from './components/tabs/GastosTab';
 import { PerfilTab } from './components/tabs/PerfilTab';
 import { SalidasTab } from './components/tabs/SalidasTab';
-import { CastroTimeTab } from './components/tabs/CastroTimeTab';
 import { LibretasTab } from './components/tabs/LibretasTab';
 import { NameLoginGate } from './components/NameLoginGate';
 import { MemberProfileModal } from './components/MemberProfileModal';
@@ -437,8 +436,6 @@ export default function App() {
           )}
 
           {activeTab === 'salidas' && <SalidasTab />}
-
-          {activeTab === 'castro-time' && <CastroTimeTab />}
 
           {activeTab === 'libretas' && <LibretasTab isDenis={user?.id === 'denis' && user.role === 'admin'} isUnavailable={user?.id === 'maxi'} />}
 

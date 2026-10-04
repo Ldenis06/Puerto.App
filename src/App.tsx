@@ -437,7 +437,7 @@ export default function App() {
 
           {activeTab === 'salidas' && <SalidasTab />}
 
-          {activeTab === 'libretas' && <LibretasTab isDenis={user?.id === 'denis' && user.role === 'admin'} isUnavailable={user?.id === 'maxi'} />}
+          {activeTab === 'libretas' && <LibretasTab isDenis={user?.id === 'denis' && user.role === 'admin'} isUnavailable={user?.id === 'maxi' || user?.id === 'castro'} />}
 
           {activeTab === 'gastos' && (
             <GastosTab

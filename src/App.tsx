@@ -59,6 +59,7 @@ export default function App() {
     return stored ? { ...stored, avatarUrl: localAvatar(stored.name, stored.avatarUrl) } : null;
   });
   const [activeTab, setActiveTab] = useState<TabType>('ruleta');
+  const [denisProfileSwitchActive, setDenisProfileSwitchActive] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>(() => getStoredExpenses());
   const [rouletteHistory, setRouletteHistory] = useState<RouletteResult | null>(() => getStoredRoulette());
   const finishSplash = useCallback(() => setShowSplash(false), []);
@@ -222,18 +223,21 @@ export default function App() {
 
   // Handlers for session
   const handleLogin = async (newUser: User, password?: string): Promise<boolean> => {
-    try {
-      if (newUser.id === 'denis') {
-        setDenisSession(await authenticateDenis(password || ''));
-      } else {
-        await authenticateProfile(newUser.id, password || '');
+    if (!denisProfileSwitchActive) {
+      try {
+        if (newUser.id === 'denis') {
+          setDenisSession(await authenticateDenis(password || ''));
+        } else {
+          await authenticateProfile(newUser.id, password || '');
+        }
+      } catch {
+        return false;
       }
-    } catch {
-      return false;
     }
     const current = users.find((member) => member.id === newUser.id) || newUser;
     setUser(current);
     setCurrentUser(current.id);
+    setDenisProfileSwitchActive(false);
     return true;
   };
 
@@ -336,6 +340,11 @@ export default function App() {
   };
 
   const handleUseProfileChange = () => {
+    if (user?.id === 'denis' && user.role === 'admin') {
+      setDenisProfileSwitchActive(true);
+      setUser(null);
+      return;
+    }
     consumeProfileChangeOnce();
     setUser(null);
   };
@@ -356,7 +365,7 @@ export default function App() {
   if (!user) {
     return showSplash
       ? <SplashScreen onFinish={finishSplash} />
-      : <NameLoginGate users={users} onLogin={handleLogin} />;
+      : <NameLoginGate users={users} onLogin={handleLogin} skipPassword={denisProfileSwitchActive} />;
   }
 
   return (
@@ -460,7 +469,8 @@ export default function App() {
               onUpdateAiDescription={handleUpdateAiDescription}
               isAdmin={user?.id === 'denis' && user.role === 'admin'}
               onClearAllExpenses={handleClearAllExpenses}
-              canChangeProfile={canChangeProfileOnce()}
+              canChangeProfile={user?.id === 'denis' && user.role === 'admin' ? true : canChangeProfileOnce()}
+              unlimitedProfileChange={user?.id === 'denis' && user.role === 'admin'}
               onUseProfileChange={handleUseProfileChange}
             />
           )}
